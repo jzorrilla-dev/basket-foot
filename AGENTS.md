@@ -9,14 +9,18 @@ beyond it, 1 pt free throws). See `README.md` for the full rules.
 
 - `scenes/main.tscn` — main scene (set as `run/main_scene`): court + basket
   (post/backboard/rim), camera, light, `Ball` (RigidBody3D), `Player`
-  (CharacterBody3D).
+  (CharacterBody3D). A large `Ground` plane (60×60, top at Y=0) is the only
+  walkable surface; the brown court is decorative (embedded, no own collision,
+  top at +0.005) so player/ball move freely between court and ground with no
+  lip.
 - `scripts/Player.cs` — WASD + Space movement, pushes the ball and records the
   last contact position on it. Grabs the ball automatically when close (1 m,
   below 1.2 m height); while carrying it keeps updating the contact position.
   Press `kick` (K) to shoot: the velocity is a ballistic arc (55°, speed solved
   for the distance to `HoopPosition`, clamped to [5, 18] m/s) fired along the
   ball's carry direction. A short grab cooldown prevents re-grabbing right after
-  a kick.
+  a kick. Respawns at `RespawnPosition` if it falls below `RespawnBelow`
+  (safety net at the edge of the `Ground`).
 - `scripts/Ball.cs` — light, high-bounce ball (bounce 0.85, mass 0.4, low
   friction); resets to spawn if it falls out of bounds. When carried it is
   frozen (`Freeze = true`) with collision disabled and follows the player at

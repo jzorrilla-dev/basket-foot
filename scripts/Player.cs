@@ -13,6 +13,8 @@ public partial class Player : CharacterBody3D
 	[Export] public float MaxKickSpeed = 18.0f;
 	[Export] public float MinKickDistance = 3.0f;
 	[Export] public float KickGrabCooldown = 0.4f;
+	[Export] public Vector3 RespawnPosition = new(0, 1, 1);
+	[Export] public float RespawnBelow = -3.0f;
 
 	private Ball _ball;
 	private float _kickCooldown;
@@ -55,6 +57,12 @@ public partial class Player : CharacterBody3D
 
 		Velocity = velocity;
 		MoveAndSlide();
+
+		if (GlobalPosition.Y < RespawnBelow)
+		{
+			GlobalPosition = RespawnPosition;
+			Velocity = Vector3.Zero;
+		}
 
 		if (_ball == null)
 		{
