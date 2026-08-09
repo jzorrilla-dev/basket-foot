@@ -1,0 +1,238 @@
+[gd_scene format=3 uid="uid://db21i3s5xxjbl"]
+
+[ext_resource type="Script" uid="uid://dihygoxkwxbgg" path="res://scripts/Player.cs" id="1"]
+[ext_resource type="Script" uid="uid://1ucbympsmw2x" path="res://scripts/Ball.cs" id="2"]
+[ext_resource type="Script" uid="uid://yp7hxt01mamo" path="res://scripts/ScoreZone.cs" id="3"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_horizon_color = Color(0.646, 0.656, 0.67, 1)
+ground_bottom_color = Color(0.3, 0.26, 0.23, 1)
+ground_horizon_color = Color(0.646, 0.656, 0.67, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 3
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="MatFloor"]
+albedo_color = Color(0.35, 0.25, 0.15, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+size = Vector3(15, 0.2, 11)
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(15, 0.2, 11)
+
+[sub_resource type="StandardMaterial3D" id="MatThreePoint"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0.35)
+roughness = 0.6
+
+[sub_resource type="CylinderMesh" id="ThreePointMesh"]
+top_radius = 6.75
+bottom_radius = 6.75
+height = 0.02
+
+[sub_resource type="StandardMaterial3D" id="MatSmallArea"]
+transparency = 1
+albedo_color = Color(0.9, 0.1, 0.1, 0.35)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="SmallAreaMesh"]
+size = Vector3(2, 0.02, 2)
+
+[sub_resource type="StandardMaterial3D" id="MatPost"]
+albedo_color = Color(0.4, 0.4, 0.42, 1)
+roughness = 0.5
+
+[sub_resource type="CylinderMesh" id="PostMesh"]
+top_radius = 0.1
+bottom_radius = 0.1
+height = 3.4
+
+[sub_resource type="CylinderShape3D" id="PostShape"]
+height = 3.4
+radius = 0.1
+
+[sub_resource type="StandardMaterial3D" id="MatBackboard"]
+albedo_color = Color(0.85, 0.9, 0.95, 1)
+roughness = 0.2
+
+[sub_resource type="BoxMesh" id="BackboardMesh"]
+size = Vector3(1.2, 0.9, 0.05)
+
+[sub_resource type="BoxShape3D" id="BackboardShape"]
+size = Vector3(1.2, 0.9, 0.05)
+
+[sub_resource type="StandardMaterial3D" id="MatRim"]
+albedo_color = Color(0.9, 0.3, 0.05, 1)
+roughness = 0.4
+
+[sub_resource type="TorusMesh" id="RimMesh"]
+inner_radius = 0.35
+outer_radius = 0.42
+rings = 5
+ring_segments = 24
+
+[sub_resource type="SphereShape3D" id="RimShape"]
+radius = 0.05
+
+[sub_resource type="CylinderShape3D" id="ScoreZoneShape"]
+height = 0.4
+radius = 0.3
+
+[sub_resource type="PhysicsMaterial" id="BallPhysics"]
+friction = 0.1
+bounce = 0.85
+
+[sub_resource type="StandardMaterial3D" id="MatBall"]
+albedo_color = Color(0.9, 0.35, 0.05, 1)
+roughness = 0.8
+
+[sub_resource type="SphereMesh" id="BallMesh"]
+radius = 0.15
+height = 0.3
+radial_segments = 24
+
+[sub_resource type="SphereShape3D" id="BallShape"]
+radius = 0.15
+
+[sub_resource type="StandardMaterial3D" id="MatPlayer"]
+albedo_color = Color(0.1, 0.35, 0.9, 1)
+roughness = 0.7
+
+[sub_resource type="CapsuleMesh" id="PlayerMesh"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="PlayerShape"]
+radius = 0.4
+height = 1.8
+
+[node name="Main" type="Node3D" unique_id=2004728431]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1383332910]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1144261063]
+transform = Transform3D(-0.8, 0.5366, -0.2683, 0, 0.4472, 0.8944, 0.6, 0.7155, -0.3578, 0, 8, 0)
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=2037187364]
+transform = Transform3D(1, 0, 0, 0, 0.747409, 0.664364, 0, -0.664364, 0.747409, 0, 8, 9)
+
+[node name="Court" type="StaticBody3D" parent="." unique_id=65812150]
+
+[node name="Floor" type="MeshInstance3D" parent="Court" unique_id=555739409]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12062979, -0.1, 0)
+material_override = SubResource("MatFloor")
+mesh = SubResource("FloorMesh")
+
+[node name="FloorCollision" type="CollisionShape3D" parent="Court" unique_id=1354916921]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+shape = SubResource("FloorShape")
+
+[node name="ThreePointLine" type="MeshInstance3D" parent="Court" unique_id=980591019]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -4.9)
+material_override = SubResource("MatThreePoint")
+mesh = SubResource("ThreePointMesh")
+
+[node name="SmallArea" type="MeshInstance3D" parent="Court" unique_id=641909908]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -3.6)
+material_override = SubResource("MatSmallArea")
+mesh = SubResource("SmallAreaMesh")
+
+[node name="Basket" type="StaticBody3D" parent="." unique_id=781835335]
+
+[node name="Post" type="MeshInstance3D" parent="Basket" unique_id=445829970]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -4.9)
+material_override = SubResource("MatPost")
+mesh = SubResource("PostMesh")
+
+[node name="PostCollision" type="CollisionShape3D" parent="Basket" unique_id=580008473]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -4.9)
+shape = SubResource("PostShape")
+
+[node name="Backboard" type="MeshInstance3D" parent="Basket" unique_id=293934195]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, -5.15)
+material_override = SubResource("MatBackboard")
+mesh = SubResource("BackboardMesh")
+
+[node name="BackboardCollision" type="CollisionShape3D" parent="Basket" unique_id=956364719]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, -5.15)
+shape = SubResource("BackboardShape")
+
+[node name="Rim" type="MeshInstance3D" parent="Basket" unique_id=1068354759]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.9)
+material_override = SubResource("MatRim")
+mesh = SubResource("RimMesh")
+
+[node name="RimCollision0" type="CollisionShape3D" parent="Basket" unique_id=1766345658]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.385, 3, -4.9)
+shape = SubResource("RimShape")
+
+[node name="RimCollision1" type="CollisionShape3D" parent="Basket" unique_id=812703523]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2722, 3, -4.6278)
+shape = SubResource("RimShape")
+
+[node name="RimCollision2" type="CollisionShape3D" parent="Basket" unique_id=1849307538]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.515)
+shape = SubResource("RimShape")
+
+[node name="RimCollision3" type="CollisionShape3D" parent="Basket" unique_id=1129864420]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2722, 3, -4.6278)
+shape = SubResource("RimShape")
+
+[node name="RimCollision4" type="CollisionShape3D" parent="Basket" unique_id=51489351]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.385, 3, -4.9)
+shape = SubResource("RimShape")
+
+[node name="RimCollision5" type="CollisionShape3D" parent="Basket" unique_id=1653311559]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2722, 3, -5.1722)
+shape = SubResource("RimShape")
+
+[node name="RimCollision6" type="CollisionShape3D" parent="Basket" unique_id=1770207094]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -5.285)
+shape = SubResource("RimShape")
+
+[node name="RimCollision7" type="CollisionShape3D" parent="Basket" unique_id=1618611891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2722, 3, -5.1722)
+shape = SubResource("RimShape")
+
+[node name="ScoreZone" type="Area3D" parent="Basket" unique_id=626165494]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.9)
+script = ExtResource("3")
+BallPath = NodePath("../../Ball")
+
+[node name="ScoreZoneShape" type="CollisionShape3D" parent="Basket/ScoreZone" unique_id=1165222186]
+shape = SubResource("ScoreZoneShape")
+
+[node name="Ball" type="RigidBody3D" parent="." unique_id=2011106119]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 3)
+mass = 0.4
+physics_material_override = SubResource("BallPhysics")
+script = ExtResource("2")
+
+[node name="BallMesh" type="MeshInstance3D" parent="Ball" unique_id=1066513318]
+material_override = SubResource("MatBall")
+mesh = SubResource("BallMesh")
+
+[node name="BallCollision" type="CollisionShape3D" parent="Ball" unique_id=1932200849]
+shape = SubResource("BallShape")
+
+[node name="Player" type="CharacterBody3D" parent="." unique_id=1862361100]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1)
+script = ExtResource("1")
+BallPath = NodePath("../Ball")
+
+[node name="PlayerMesh" type="MeshInstance3D" parent="Player" unique_id=1662606828]
+material_override = SubResource("MatPlayer")
+mesh = SubResource("PlayerMesh")
+
+[node name="PlayerCollision" type="CollisionShape3D" parent="Player" unique_id=193557354]
+shape = SubResource("PlayerShape")
