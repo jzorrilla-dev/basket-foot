@@ -144,11 +144,18 @@ public partial class Player : CharacterBody3D
 
 	private void UpdateFacing(Vector3 moveDir, float delta)
 	{
-		if (moveDir.LengthSquared() > 0.001f)
+		float turn = Input.GetAxis("turn_left", "turn_right");
+		if (turn != 0.0f)
+		{
+			// Giro manual con Q/E: tiene prioridad y permite dar vueltas completas.
+			// Positivo = horario visto desde arriba (girar a la derecha).
+			_facingAngle = Mathf.Wrap(_facingAngle + turn * Mathf.DegToRad(MaxTurnSpeedDeg) * delta, -Mathf.Pi, Mathf.Pi);
+		}
+		else if (moveDir.LengthSquared() > 0.001f)
 		{
 			float target = Mathf.Atan2(moveDir.X, -moveDir.Z);
 			float diff = Mathf.AngleDifference(_facingAngle, target);
-			float maxStep = Mathf.DegToRad(MaxTurnSpeedDeg) * (float)delta;
+			float maxStep = Mathf.DegToRad(MaxTurnSpeedDeg) * delta;
 			_facingAngle = Mathf.Abs(diff) <= maxStep ? target : _facingAngle + Mathf.Sign(diff) * maxStep;
 		}
 

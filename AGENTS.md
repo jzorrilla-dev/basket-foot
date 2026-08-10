@@ -17,8 +17,11 @@ beyond it, 1 pt free throws). See `README.md` for the full rules.
   last contact position on it. Grabs the ball automatically when close (1 m,
   below 1.2 m height); while carrying it keeps updating the contact position.
   The visual child (`Player/Visual`, a capsule + orange cone marker) rotates
-  smoothly (`MaxTurnSpeedDeg`) toward the movement direction; the exposed
-  `FacingDirection` drives where the carried ball sits and where kicks go.
+  smoothly (`MaxTurnSpeedDeg`) toward the movement direction; holding Q/E
+  (`turn_left`/`turn_right`) overrides that and spins the facing manually —
+  full 360° turns, works idle, moving or carrying (positive angle = clockwise
+  seen from above). The exposed `FacingDirection` drives where the carried
+  ball sits and where kicks go.
   Press `kick` (K) to shoot: the velocity is a ballistic arc (65°, speed solved
   for the distance to `HoopPosition`, clamped to [5, 18] m/s) fired along the
   ball's carry direction. The solve aims `KickAimPastCenter` (0.12 m) beyond the
@@ -53,7 +56,7 @@ beyond it, 1 pt free throws). See `README.md` for the full rules.
 - Godot 4.7 .NET edition — **scripting language is C#**, not GDScript.
 - Renderer: Forward Plus. Physics: Jolt Physics. Windows render driver: D3D12.
 - `window/stretch/mode="canvas_items"` + `aspect="expand"` — UI is resolution-scaled; use anchors.
-- Not a git repo yet (no `.git`), though `.gitignore`/`.gitattributes` exist.
+- Git repo; the generated `/extension_api.json` dump is gitignored.
 
 ## Gotchas an agent would miss
 
@@ -88,7 +91,7 @@ beyond it, 1 pt free throws). See `README.md` for the full rules.
 - Verify from the shell: `dotnet build` then `godot --headless --path . --quit-after 5`
   (main scene loads; expect no errors). `--import` also works but only when the
   editor is closed.
-- Input actions (`move_left/right/forward/back`, `jump`) are defined in
-  `project.godot` `[input]`; WASD + arrows + Space.
+- Input actions in `project.godot` `[input]`: movement (WASD + arrows),
+  `jump` (Space), `kick` (K), `bounce` (J), `turn_left`/`turn_right` (Q/E).
 - Before adding any file, confirm whether it belongs in `.godot/` (no) vs the
   project root (yes).
