@@ -81,13 +81,13 @@ albedo_color = Color(0.9, 0.3, 0.05, 1)
 roughness = 0.4
 
 [sub_resource type="TorusMesh" id="RimMesh"]
-inner_radius = 0.35
-outer_radius = 0.42
+inner_radius = 0.42
+outer_radius = 0.49
 rings = 5
 ring_segments = 24
 
 [sub_resource type="SphereShape3D" id="RimShape"]
-radius = 0.05
+radius = 0.045
 
 [sub_resource type="CylinderShape3D" id="ScoreZoneShape"]
 height = 0.4
@@ -120,6 +120,16 @@ height = 1.8
 [sub_resource type="CapsuleShape3D" id="PlayerShape"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="MatMarker"]
+albedo_color = Color(1, 0.82, 0.2, 1)
+roughness = 0.6
+
+[sub_resource type="CylinderMesh" id="MarkerMesh"]
+top_radius = 0.001
+bottom_radius = 0.12
+height = 0.3
+radial_segments = 12
 
 [node name="Main" type="Node3D" unique_id=2004728431]
 
@@ -164,12 +174,12 @@ mesh = SubResource("SmallAreaMesh")
 [node name="Basket" type="StaticBody3D" parent="." unique_id=781835335]
 
 [node name="Post" type="MeshInstance3D" parent="Basket" unique_id=445829970]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -5.65)
 material_override = SubResource("MatPost")
 mesh = SubResource("PostMesh")
 
 [node name="PostCollision" type="CollisionShape3D" parent="Basket" unique_id=580008473]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -5.65)
 shape = SubResource("PostShape")
 
 [node name="Backboard" type="MeshInstance3D" parent="Basket" unique_id=293934195]
@@ -187,35 +197,35 @@ material_override = SubResource("MatRim")
 mesh = SubResource("RimMesh")
 
 [node name="RimCollision0" type="CollisionShape3D" parent="Basket" unique_id=1766345658]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.385, 3, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.46, 3, -4.9)
 shape = SubResource("RimShape")
 
 [node name="RimCollision1" type="CollisionShape3D" parent="Basket" unique_id=812703523]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2722, 3, -4.6278)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, -4.5747)
 shape = SubResource("RimShape")
 
 [node name="RimCollision2" type="CollisionShape3D" parent="Basket" unique_id=1849307538]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.515)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.44)
 shape = SubResource("RimShape")
 
 [node name="RimCollision3" type="CollisionShape3D" parent="Basket" unique_id=1129864420]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2722, 3, -4.6278)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, -4.5747)
 shape = SubResource("RimShape")
 
 [node name="RimCollision4" type="CollisionShape3D" parent="Basket" unique_id=51489351]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.385, 3, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.46, 3, -4.9)
 shape = SubResource("RimShape")
 
 [node name="RimCollision5" type="CollisionShape3D" parent="Basket" unique_id=1653311559]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2722, 3, -5.1722)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, -5.2253)
 shape = SubResource("RimShape")
 
 [node name="RimCollision6" type="CollisionShape3D" parent="Basket" unique_id=1770207094]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -5.285)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -5.36)
 shape = SubResource("RimShape")
 
 [node name="RimCollision7" type="CollisionShape3D" parent="Basket" unique_id=1618611891]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2722, 3, -5.1722)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, -5.2253)
 shape = SubResource("RimShape")
 
 [node name="ScoreZone" type="Area3D" parent="Basket" unique_id=626165494]
@@ -229,6 +239,10 @@ shape = SubResource("ScoreZoneShape")
 [node name="Ball" type="RigidBody3D" parent="." unique_id=2011106119]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 3)
 mass = 0.4
+linear_damp_mode = 1
+linear_damp = 0.0
+angular_damp_mode = 1
+angular_damp = 0.0
 physics_material_override = SubResource("BallPhysics")
 script = ExtResource("2")
 
@@ -243,10 +257,18 @@ shape = SubResource("BallShape")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1)
 script = ExtResource("1")
 BallPath = NodePath("../Ball")
+VisualPath = NodePath("Visual")
 
-[node name="PlayerMesh" type="MeshInstance3D" parent="Player" unique_id=1662606828]
+[node name="Visual" type="Node3D" parent="Player" unique_id=980591024]
+
+[node name="PlayerMesh" type="MeshInstance3D" parent="Player/Visual" unique_id=1662606828]
 material_override = SubResource("MatPlayer")
 mesh = SubResource("PlayerMesh")
+
+[node name="DirectionMarker" type="MeshInstance3D" parent="Player/Visual" unique_id=980591025]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 1.1, -0.4)
+material_override = SubResource("MatMarker")
+mesh = SubResource("MarkerMesh")
 
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player" unique_id=193557354]
 shape = SubResource("PlayerShape")

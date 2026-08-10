@@ -5,3 +5,6 @@
 # .NET build output
 /bin/
 /obj/
+
+# Generated Godot extension API dump
+/extension_api.json

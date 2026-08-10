@@ -16,17 +16,34 @@ beyond it, 1 pt free throws). See `README.md` for the full rules.
 - `scripts/Player.cs` — WASD + Space movement, pushes the ball and records the
   last contact position on it. Grabs the ball automatically when close (1 m,
   below 1.2 m height); while carrying it keeps updating the contact position.
-  Press `kick` (K) to shoot: the velocity is a ballistic arc (55°, speed solved
+  The visual child (`Player/Visual`, a capsule + orange cone marker) rotates
+  smoothly (`MaxTurnSpeedDeg`) toward the movement direction; the exposed
+  `FacingDirection` drives where the carried ball sits and where kicks go.
+  Press `kick` (K) to shoot: the velocity is a ballistic arc (65°, speed solved
   for the distance to `HoopPosition`, clamped to [5, 18] m/s) fired along the
-  ball's carry direction. A short grab cooldown prevents re-grabbing right after
-  a kick. Respawns at `RespawnPosition` if it falls below `RespawnBelow`
-  (safety net at the edge of the `Ground`).
+  ball's carry direction. The solve aims `KickAimPastCenter` (0.12 m) beyond the
+  hoop center so the ball clears the front rim instead of grazing it on the way
+  down. Press `bounce` (J) while carrying to pop the ball up
+  just in front of you (it rebounds in front); during a short window K volleys
+  that loose ball (within `VolleyRadius`, below `VolleyMaxHeight`) toward the
+  hoop. A short grab cooldown prevents re-grabbing right after a kick or bounce.
+  Respawns at `RespawnPosition` if it falls below `RespawnBelow` (safety net at
+  the edge of the `Ground`).
 - `scripts/Ball.cs` — light, high-bounce ball (bounce 0.85, mass 0.4, low
-  friction); resets to spawn if it falls out of bounds. When carried it is
+  friction); resets to spawn if it falls out of bounds. The scene sets
+  `linear_damp/angular_damp = 0` with `*_damp_mode = 1` (REPLACE) so free flight
+  is truly ballistic — otherwise the project default damp (~0.1) makes every
+  kick fall short of the hoop. When carried it is
   frozen (`Freeze = true`) with collision disabled and follows the player at
-  the feet; `Release()` is the counterpart for a future kick.
-- `scripts/ScoreZone.cs` — Area3D inside the rim; scores 2 or 3 points based on
-  the last player-contact position vs the three-point radius (6.75 m).
+  the feet; `Release()` unfreezes it. Carry direction comes from the carrier's
+  `FacingDirection` when it's a `Player` (smooth), else from its velocity.
+  `ScoredFlag` prevents scoring the same possession twice; `RecordContact`
+  or the out-of-bounds reset clears it.
+- `scripts/ScoreZone.cs` — Area3D used as the hoop marker; every physics frame
+  it scores only when the ball's center crosses the hoop plane (Y=3) going
+  downward inside `EntryRadius` (0.24 m) of the rim axis, awarding 2 or 3
+  points from the last player-contact position vs the three-point radius
+  (6.75 m). Rim touches/deflections do NOT score.
 - `basket-foot.csproj`/`.sln` — hand-created, mirroring what Godot .NET would
   generate (`Godot.NET.Sdk/4.7.1`, `net8.0`). Keep them in sync if Godot
   regenerates them.

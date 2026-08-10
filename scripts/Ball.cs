@@ -9,6 +9,7 @@ public partial class Ball : RigidBody3D
 
 	public Vector3 LastContactPosition { get; private set; }
 	public bool HasContact { get; private set; }
+	public bool ScoredFlag { get; private set; }
 	public Node3D Carrier { get; private set; }
 	public bool IsCarried => Carrier != null;
 	public Vector3 CarryDirection => _carryDirection;
@@ -35,7 +36,20 @@ public partial class Ball : RigidBody3D
 			AngularVelocity = Vector3.Zero;
 			GlobalPosition = ResetPosition;
 			HasContact = false;
+			ScoredFlag = false;
 		}
+	}
+
+	public void MarkScored()
+	{
+		ScoredFlag = true;
+	}
+
+	public void RecordContact(Vector3 position)
+	{
+		LastContactPosition = position;
+		HasContact = true;
+		ScoredFlag = false;
 	}
 
 	public void Grab(Node3D carrier)
@@ -55,23 +69,19 @@ public partial class Ball : RigidBody3D
 		LinearVelocity = velocity;
 	}
 
-	public void RecordContact(Vector3 position)
-	{
-		LastContactPosition = position;
-		HasContact = true;
-	}
-
 	private void FollowCarrier()
 	{
-		Vector3 horizontalVelocity = Vector3.Zero;
-		if (Carrier is CharacterBody3D body)
+		if (Carrier is Player player)
 		{
-			horizontalVelocity = new Vector3(body.Velocity.X, 0, body.Velocity.Z);
+			_carryDirection = player.FacingDirection;
 		}
-
-		if (horizontalVelocity.Length() > 0.5f)
+		else if (Carrier is CharacterBody3D body)
 		{
-			_carryDirection = horizontalVelocity.Normalized();
+			Vector3 horizontalVelocity = new(body.Velocity.X, 0, body.Velocity.Z);
+			if (horizontalVelocity.Length() > 0.5f)
+			{
+				_carryDirection = horizontalVelocity.Normalized();
+			}
 		}
 
 		Vector3 target = Carrier.GlobalPosition + _carryDirection * CarryForward;
