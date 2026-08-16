@@ -2,7 +2,7 @@ using Godot;
 
 public partial class Ball : RigidBody3D
 {
-	[Export] public Vector3 ResetPosition = new(0, 0.5f, 3);
+	[Export] public Vector3 ResetPosition = new(0, 0.5f, 0);
 	[Export] public float ResetBelow = -3.0f;
 	[Export] public float CarryForward = 0.7f;
 	[Export] public float CarryDrop = 0.75f;
@@ -86,6 +86,14 @@ public partial class Ball : RigidBody3D
 
 		Vector3 target = Carrier.GlobalPosition + _carryDirection * CarryForward;
 		target.Y = Carrier.GlobalPosition.Y - CarryDrop;
+		if (Carrier is Player chargingPlayer)
+		{
+			// Al cargar el tiro el balón se levanta y avanza un poco: el jugador
+			// ve cuánta potencia lleva antes de soltar.
+			float charge = chargingPlayer.KickCharge;
+			target += _carryDirection * (charge * 0.5f);
+			target.Y += charge * 0.35f;
+		}
 		GlobalPosition = target;
 	}
 }

@@ -3,7 +3,7 @@ using Godot;
 public partial class ScoreZone : Area3D
 {
 	[Export] public float ThreePointRadius = 6.75f;
-	[Export] public float EntryRadius = 0.24f;
+	[Export] public float EntryRadius = 0.15f;
 	[Export] public NodePath BallPath;
 
 	private Ball _ball;

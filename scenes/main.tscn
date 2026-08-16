@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dihygoxkwxbgg" path="res://scripts/Player.cs" id="1"]
 [ext_resource type="Script" uid="uid://1ucbympsmw2x" path="res://scripts/Ball.cs" id="2"]
 [ext_resource type="Script" uid="uid://yp7hxt01mamo" path="res://scripts/ScoreZone.cs" id="3"]
+[ext_resource type="Script" path="res://scripts/PlayerCamera.cs" id="4"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_horizon_color = Color(0.646, 0.656, 0.67, 1)
@@ -19,11 +20,11 @@ ambient_light_source = 3
 tonemap_mode = 2
 
 [sub_resource type="StandardMaterial3D" id="MatFloor"]
-albedo_color = Color(0.35, 0.25, 0.15, 1)
-roughness = 0.9
+albedo_color = Color(0.62, 0.44, 0.24, 1)
+roughness = 0.6
 
 [sub_resource type="BoxMesh" id="FloorMesh"]
-size = Vector3(15, 0.2, 11)
+size = Vector3(40, 0.2, 20)
 
 [sub_resource type="StandardMaterial3D" id="MatGround"]
 albedo_color = Color(0.28, 0.32, 0.26, 1)
@@ -35,15 +36,27 @@ size = Vector3(60, 0.4, 60)
 [sub_resource type="BoxShape3D" id="GroundShape"]
 size = Vector3(60, 0.4, 60)
 
-[sub_resource type="StandardMaterial3D" id="MatThreePoint"]
-transparency = 1
-albedo_color = Color(1, 1, 1, 0.35)
-roughness = 0.6
+[sub_resource type="StandardMaterial3D" id="MatLine"]
+albedo_color = Color(1, 1, 1, 1)
+roughness = 0.5
 
-[sub_resource type="CylinderMesh" id="ThreePointMesh"]
-top_radius = 6.75
-bottom_radius = 6.75
-height = 0.02
+[sub_resource type="BoxMesh" id="LineMeshLong"]
+size = Vector3(40, 0.02, 0.12)
+
+[sub_resource type="BoxMesh" id="LineMeshShort"]
+size = Vector3(0.12, 0.02, 20)
+
+[sub_resource type="TorusMesh" id="CenterRingMesh"]
+inner_radius = 1.7
+outer_radius = 1.85
+rings = 4
+ring_segments = 48
+
+[sub_resource type="TorusMesh" id="ThreePointRingMesh"]
+inner_radius = 6.68
+outer_radius = 6.82
+rings = 4
+ring_segments = 96
 
 [sub_resource type="StandardMaterial3D" id="MatSmallArea"]
 transparency = 1
@@ -51,7 +64,7 @@ albedo_color = Color(0.9, 0.1, 0.1, 0.35)
 roughness = 0.6
 
 [sub_resource type="BoxMesh" id="SmallAreaMesh"]
-size = Vector3(2, 0.02, 2)
+size = Vector3(5, 0.02, 5)
 
 [sub_resource type="StandardMaterial3D" id="MatPost"]
 albedo_color = Color(0.4, 0.4, 0.42, 1)
@@ -113,23 +126,50 @@ radius = 0.15
 albedo_color = Color(0.1, 0.35, 0.9, 1)
 roughness = 0.7
 
-[sub_resource type="CapsuleMesh" id="PlayerMesh"]
-radius = 0.4
-height = 1.8
+[sub_resource type="StandardMaterial3D" id="MatPlayer2"]
+albedo_color = Color(0.85, 0.2, 0.15, 1)
+roughness = 0.7
+
+[sub_resource type="SphereMesh" id="HeadMesh"]
+radius = 0.13
+height = 0.26
+
+[sub_resource type="BoxMesh" id="TorsoMesh"]
+size = Vector3(0.36, 0.45, 0.2)
+
+[sub_resource type="BoxMesh" id="ShortsMesh"]
+size = Vector3(0.34, 0.22, 0.2)
+
+[sub_resource type="CapsuleMesh" id="ArmMesh"]
+radius = 0.05
+height = 0.55
+
+[sub_resource type="CapsuleMesh" id="UpperLegMesh"]
+radius = 0.075
+height = 0.4
+
+[sub_resource type="CapsuleMesh" id="LowerLegMesh"]
+radius = 0.06
+height = 0.4
+
+[sub_resource type="BoxMesh" id="BootMesh"]
+size = Vector3(0.11, 0.09, 0.28)
 
 [sub_resource type="CapsuleShape3D" id="PlayerShape"]
 radius = 0.4
 height = 1.8
 
-[sub_resource type="StandardMaterial3D" id="MatMarker"]
-albedo_color = Color(1, 0.82, 0.2, 1)
-roughness = 0.6
+[sub_resource type="StandardMaterial3D" id="MatSkin"]
+albedo_color = Color(0.85, 0.62, 0.45, 1)
+roughness = 0.7
 
-[sub_resource type="CylinderMesh" id="MarkerMesh"]
-top_radius = 0.001
-bottom_radius = 0.12
-height = 0.3
-radial_segments = 12
+[sub_resource type="StandardMaterial3D" id="MatShorts"]
+albedo_color = Color(0.06, 0.08, 0.18, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="MatBoots"]
+albedo_color = Color(0.08, 0.07, 0.07, 1)
+roughness = 0.6
 
 [node name="Main" type="Node3D" unique_id=2004728431]
 
@@ -141,7 +181,9 @@ transform = Transform3D(-0.8, 0.5366, -0.2683, 0, 0.4472, 0.8944, 0.6, 0.7155, -
 shadow_enabled = true
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=2037187364]
-transform = Transform3D(1, 0, 0, 0, 0.747409, 0.664364, 0, -0.664364, 0.747409, 0, 8, 9)
+transform = Transform3D(1, 0, 0, 0, 0.9363, -0.3511, 0, 0.3511, 0.9363, 0, 4.2, 6)
+script = ExtResource("4")
+PlayerPath = NodePath("../Player")
 
 [node name="Ground" type="StaticBody3D" parent="." unique_id=980591020]
 
@@ -161,83 +203,190 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.095, 0)
 material_override = SubResource("MatFloor")
 mesh = SubResource("FloorMesh")
 
-[node name="ThreePointLine" type="MeshInstance3D" parent="Court" unique_id=980591019]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -4.9)
-material_override = SubResource("MatThreePoint")
-mesh = SubResource("ThreePointMesh")
+[node name="Boundary" type="Node3D" parent="Court"]
 
-[node name="SmallArea" type="MeshInstance3D" parent="Court" unique_id=641909908]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, -3.6)
+[node name="LineTop" type="MeshInstance3D" parent="Court/Boundary"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.015, 20)
+material_override = SubResource("MatLine")
+mesh = SubResource("LineMeshLong")
+
+[node name="LineBottom" type="MeshInstance3D" parent="Court/Boundary"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.015, -20)
+material_override = SubResource("MatLine")
+mesh = SubResource("LineMeshLong")
+
+[node name="LineLeft" type="MeshInstance3D" parent="Court/Boundary"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.015, 0)
+material_override = SubResource("MatLine")
+mesh = SubResource("LineMeshShort")
+
+[node name="LineRight" type="MeshInstance3D" parent="Court/Boundary"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.015, 0)
+material_override = SubResource("MatLine")
+mesh = SubResource("LineMeshShort")
+
+[node name="HalfLine" type="MeshInstance3D" parent="Court"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.015, 0)
+material_override = SubResource("MatLine")
+mesh = SubResource("LineMeshShort")
+
+[node name="CenterCircle" type="MeshInstance3D" parent="Court"]
+transform = Transform3D(1, 0, 0, 0, 0.2, 0, 0, 0, 1, 0, 0.015, 0)
+material_override = SubResource("MatLine")
+mesh = SubResource("CenterRingMesh")
+
+[node name="ThreePointLine" type="MeshInstance3D" parent="Court"]
+transform = Transform3D(1, 0, 0, 0, 0.2, 0, 0, 0, 1, 0, 0.015, -13.1)
+material_override = SubResource("MatLine")
+mesh = SubResource("ThreePointRingMesh")
+
+[node name="ThreePointLineNorth" type="MeshInstance3D" parent="Court"]
+transform = Transform3D(1, 0, 0, 0, 0.2, 0, 0, 0, 1, 0, 0.015, 13.1)
+material_override = SubResource("MatLine")
+mesh = SubResource("ThreePointRingMesh")
+
+[node name="SmallArea" type="MeshInstance3D" parent="Court"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.011, -13.1)
+material_override = SubResource("MatSmallArea")
+mesh = SubResource("SmallAreaMesh")
+
+[node name="SmallAreaNorth" type="MeshInstance3D" parent="Court"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.011, 13.1)
 material_override = SubResource("MatSmallArea")
 mesh = SubResource("SmallAreaMesh")
 
 [node name="Basket" type="StaticBody3D" parent="." unique_id=781835335]
 
 [node name="Post" type="MeshInstance3D" parent="Basket" unique_id=445829970]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -5.65)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -13.85)
 material_override = SubResource("MatPost")
 mesh = SubResource("PostMesh")
 
 [node name="PostCollision" type="CollisionShape3D" parent="Basket" unique_id=580008473]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -5.65)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, -13.85)
 shape = SubResource("PostShape")
 
 [node name="Backboard" type="MeshInstance3D" parent="Basket" unique_id=293934195]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, -5.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, -13.35)
 material_override = SubResource("MatBackboard")
 mesh = SubResource("BackboardMesh")
 
 [node name="BackboardCollision" type="CollisionShape3D" parent="Basket" unique_id=956364719]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, -5.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, -13.35)
 shape = SubResource("BackboardShape")
 
 [node name="Rim" type="MeshInstance3D" parent="Basket" unique_id=1068354759]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -13.1)
 material_override = SubResource("MatRim")
 mesh = SubResource("RimMesh")
 
 [node name="RimCollision0" type="CollisionShape3D" parent="Basket" unique_id=1766345658]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.46, 3, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.46, 3, -13.1)
 shape = SubResource("RimShape")
 
 [node name="RimCollision1" type="CollisionShape3D" parent="Basket" unique_id=812703523]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, -4.5747)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, -12.7747)
 shape = SubResource("RimShape")
 
 [node name="RimCollision2" type="CollisionShape3D" parent="Basket" unique_id=1849307538]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.44)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -12.64)
 shape = SubResource("RimShape")
 
 [node name="RimCollision3" type="CollisionShape3D" parent="Basket" unique_id=1129864420]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, -4.5747)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, -12.7747)
 shape = SubResource("RimShape")
 
 [node name="RimCollision4" type="CollisionShape3D" parent="Basket" unique_id=51489351]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.46, 3, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.46, 3, -13.1)
 shape = SubResource("RimShape")
 
 [node name="RimCollision5" type="CollisionShape3D" parent="Basket" unique_id=1653311559]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, -5.2253)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, -13.4253)
 shape = SubResource("RimShape")
 
 [node name="RimCollision6" type="CollisionShape3D" parent="Basket" unique_id=1770207094]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -5.36)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -13.56)
 shape = SubResource("RimShape")
 
 [node name="RimCollision7" type="CollisionShape3D" parent="Basket" unique_id=1618611891]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, -5.2253)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, -13.4253)
 shape = SubResource("RimShape")
 
 [node name="ScoreZone" type="Area3D" parent="Basket" unique_id=626165494]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -4.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -13.1)
 script = ExtResource("3")
 BallPath = NodePath("../../Ball")
 
 [node name="ScoreZoneShape" type="CollisionShape3D" parent="Basket/ScoreZone" unique_id=1165222186]
 shape = SubResource("ScoreZoneShape")
 
+[node name="Basket2" type="StaticBody3D" parent="."]
+
+[node name="Post" type="MeshInstance3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 13.85)
+material_override = SubResource("MatPost")
+mesh = SubResource("PostMesh")
+
+[node name="PostCollision" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 13.85)
+shape = SubResource("PostShape")
+
+[node name="Backboard" type="MeshInstance3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 13.35)
+material_override = SubResource("MatBackboard")
+mesh = SubResource("BackboardMesh")
+
+[node name="BackboardCollision" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 13.35)
+shape = SubResource("BackboardShape")
+
+[node name="Rim" type="MeshInstance3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 13.1)
+material_override = SubResource("MatRim")
+mesh = SubResource("RimMesh")
+
+[node name="RimCollision0" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.46, 3, 13.1)
+shape = SubResource("RimShape")
+
+[node name="RimCollision1" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, 12.7747)
+shape = SubResource("RimShape")
+
+[node name="RimCollision2" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 12.64)
+shape = SubResource("RimShape")
+
+[node name="RimCollision3" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, 12.7747)
+shape = SubResource("RimShape")
+
+[node name="RimCollision4" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.46, 3, 13.1)
+shape = SubResource("RimShape")
+
+[node name="RimCollision5" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, 13.4253)
+shape = SubResource("RimShape")
+
+[node name="RimCollision6" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 13.56)
+shape = SubResource("RimShape")
+
+[node name="RimCollision7" type="CollisionShape3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, 13.4253)
+shape = SubResource("RimShape")
+
+[node name="ScoreZone" type="Area3D" parent="Basket2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 13.1)
+script = ExtResource("3")
+BallPath = NodePath("../../Ball")
+
+[node name="ScoreZoneShape" type="CollisionShape3D" parent="Basket2/ScoreZone"]
+shape = SubResource("ScoreZoneShape")
+
 [node name="Ball" type="RigidBody3D" parent="." unique_id=2011106119]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 mass = 0.4
 linear_damp_mode = 1
 linear_damp = 0.0
@@ -261,14 +410,139 @@ VisualPath = NodePath("Visual")
 
 [node name="Visual" type="Node3D" parent="Player" unique_id=980591024]
 
-[node name="PlayerMesh" type="MeshInstance3D" parent="Player/Visual" unique_id=1662606828]
-material_override = SubResource("MatPlayer")
-mesh = SubResource("PlayerMesh")
+[node name="Head" type="MeshInstance3D" parent="Player/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("HeadMesh")
 
-[node name="DirectionMarker" type="MeshInstance3D" parent="Player/Visual" unique_id=980591025]
-transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 1.1, -0.4)
-material_override = SubResource("MatMarker")
-mesh = SubResource("MarkerMesh")
+[node name="Torso" type="MeshInstance3D" parent="Player/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
+material_override = SubResource("MatPlayer")
+mesh = SubResource("TorsoMesh")
+
+[node name="Shorts" type="MeshInstance3D" parent="Player/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+material_override = SubResource("MatShorts")
+mesh = SubResource("ShortsMesh")
+
+[node name="ArmLeft" type="MeshInstance3D" parent="Player/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="ArmRight" type="MeshInstance3D" parent="Player/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="LegPivotLeft" type="Node3D" parent="Player/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
+
+[node name="UpperLegLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
+
+[node name="LegPivotRight" type="Node3D" parent="Player/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
+
+[node name="UpperLegRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
 
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player" unique_id=193557354]
+shape = SubResource("PlayerShape")
+
+[node name="Player2" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -1)
+script = ExtResource("1")
+BallPath = NodePath("../Ball")
+VisualPath = NodePath("Visual")
+IsAI = true
+
+[node name="Visual" type="Node3D" parent="Player2"]
+
+[node name="Head" type="MeshInstance3D" parent="Player2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("HeadMesh")
+
+[node name="Torso" type="MeshInstance3D" parent="Player2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
+material_override = SubResource("MatPlayer2")
+mesh = SubResource("TorsoMesh")
+
+[node name="Shorts" type="MeshInstance3D" parent="Player2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+material_override = SubResource("MatShorts")
+mesh = SubResource("ShortsMesh")
+
+[node name="ArmLeft" type="MeshInstance3D" parent="Player2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="ArmRight" type="MeshInstance3D" parent="Player2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="LegPivotLeft" type="Node3D" parent="Player2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
+
+[node name="UpperLegLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
+
+[node name="LegPivotRight" type="Node3D" parent="Player2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
+
+[node name="UpperLegRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
+
+[node name="PlayerCollision" type="CollisionShape3D" parent="Player2"]
 shape = SubResource("PlayerShape")
