@@ -31,6 +31,11 @@ public partial class Player : CharacterBody3D
 	[Export] public float BounceGrabCooldown = 0.6f;
 	[Export] public float VolleyRadius = 1.5f;
 	[Export] public float VolleyMaxHeight = 2.0f;
+	[Export] public float HeaderMinHeight = 0.7f;
+	[Export] public float HeaderMaxHeight = 1.4f;
+	[Export] public float HeaderRadius = 1.3f;
+	[Export] public float HeaderSpeed = 8.0f;
+	[Export] public float HeaderAngleDegrees = 30.0f;
 	[Export] public Vector3 RespawnPosition = new(0, 1, 1);
 	[Export] public float RespawnBelow = -3.0f;
 	[Export] public bool IsAI = false;
@@ -247,6 +252,22 @@ public partial class Player : CharacterBody3D
 			_postAvoidTimer -= (float)delta;
 		}
 
+		// Cabeceo: balón suelto a altura de cabeza, presionar K.
+		if (kickPressed && _kickCooldown <= 0.0f && _ball != null)
+		{
+			Vector3 toBallH = _ball.GlobalPosition - GlobalPosition;
+			float ballY = _ball.GlobalPosition.Y;
+			float horizontalDist = new Vector2(toBallH.X, toBallH.Z).Length();
+			if (horizontalDist < HeaderRadius && ballY > HeaderMinHeight && ballY < HeaderMaxHeight)
+			{
+				_ball.RecordContact(GlobalPosition);
+				Vector3 headerDir = ApplyShotSpread(FacingDirection, DistanceToHoop(_ball.GlobalPosition));
+				FireKickWithSpeed(HeaderSpeed, headerDir, HeaderAngleDegrees);
+				_kickCooldown = KickGrabCooldown;
+				kickPressed = false;
+			}
+		}
+
 		if (_canVolley && kickPressed)
 		{
 			Vector3 toBall = _ball.GlobalPosition - GlobalPosition;
@@ -408,7 +429,12 @@ public partial class Player : CharacterBody3D
 
 	private void FireKickWithSpeed(float speed, Vector3 dir)
 	{
-		float angle = Mathf.DegToRad(KickAngleDegrees);
+		FireKickWithSpeed(speed, dir, KickAngleDegrees);
+	}
+
+	private void FireKickWithSpeed(float speed, Vector3 dir, float angleDeg)
+	{
+		float angle = Mathf.DegToRad(angleDeg);
 		float cosA = Mathf.Cos(angle);
 		_ball.Release(new Vector3(dir.X * speed * cosA, speed * Mathf.Sin(angle), dir.Z * speed * cosA));
 	}
