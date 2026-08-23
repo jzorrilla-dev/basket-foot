@@ -2,7 +2,9 @@ using Godot;
 
 public partial class Player : CharacterBody3D
 {
-	[Export] public float Speed = 6.0f;
+	[Export] public float WalkSpeed = 3.0f;
+	[Export] public float JogSpeed = 6.0f;
+	[Export] public float SprintSpeed = 9.0f;
 	[Export] public float JumpVelocity = 4.5f;
 	[Export] public NodePath BallPath;
 	[Export] public NodePath VisualPath;
@@ -36,6 +38,8 @@ public partial class Player : CharacterBody3D
 	[Export] public float AIMinShootDistance = 3.0f;
 	[Export] public float AICarryTimeBeforeShot = 1.0f;
 	[Export] public float AIGrabStopRadius = 0.9f;
+	[Export] public float AISpeedFactor = 0.85f;
+	[Export] public float AIPostAvoidDuration = 0.5f;
 
 	private Ball _ball;
 	private Node3D _visual;
@@ -50,6 +54,9 @@ public partial class Player : CharacterBody3D
 	private bool _charging;
 	private bool _aiWantsShoot;
 	private bool _canVolley;
+	private float _currentSpeed;
+	private float _postAvoidTimer;
+	private Vector3 _postAvoidDirection;
 
 	public Vector3 FacingDirection => new(Mathf.Sin(_facingAngle), 0, -Mathf.Cos(_facingAngle));
 	public float KickCharge => _kickCharge;
@@ -86,30 +93,63 @@ public partial class Player : CharacterBody3D
 		bool kickHeld = false;
 		bool kickReleased = false;
 		bool bouncePressed = false;
-		Vector2 inputDir;
+		Vector3 direction;
 		if (IsAI)
 		{
-			inputDir = ComputeAIInput(out kickPressed, out kickHeld, out kickReleased, out bouncePressed);
+			if (_postAvoidTimer > 0.0f)
+			{
+				// Esquivando el poste: usar dirección de evasión.
+				direction = _postAvoidDirection;
+				_currentSpeed = JogSpeed * AISpeedFactor;
+			}
+			else
+			{
+				Vector2 aiInput = ComputeAIInput(out kickPressed, out kickHeld, out kickReleased, out bouncePressed);
+				direction = new Vector3(aiInput.X, 0, aiInput.Y).Normalized();
+				_currentSpeed = direction.LengthSquared() > 0.001f ? JogSpeed * AISpeedFactor : 0.0f;
+			}
 		}
 		else
 		{
-			inputDir = Input.GetVector("move_left", "move_right", "move_forward", "move_back");
+			// S gira 180° en vez de mover hacia atrás.
+			if (Input.IsActionJustPressed("move_back"))
+			{
+				_facingAngle = Mathf.Wrap(_facingAngle + Mathf.Pi, -Mathf.Pi, Mathf.Pi);
+			}
+
+			// W avanza, A/D strafe; sin retroceso.
+			float strafe = Input.GetAxis("move_left", "move_right");
+			bool moveForward = Input.IsActionPressed("move_forward");
+			Vector2 inputDir = new Vector2(strafe, moveForward ? -1.0f : 0.0f);
+
 			bouncePressed = Input.IsActionJustPressed("bounce");
 			kickPressed = Input.IsActionJustPressed("kick");
 			kickHeld = Input.IsActionPressed("kick");
 			kickReleased = Input.IsActionJustReleased("kick");
+
+			// Velocidad según modificadores: Ctrl=caminar, default=trote, Shift=correr.
+			if (Input.IsKeyPressed(Key.Ctrl))
+				_currentSpeed = WalkSpeed;
+			else if (Input.IsKeyPressed(Key.Shift))
+				_currentSpeed = SprintSpeed;
+			else
+				_currentSpeed = JogSpeed;
+
+			// Movimiento relativo al facing (la cámara sigue el FacingDirection).
+			Vector3 forward = FacingDirection;
+			Vector3 right = new(Mathf.Cos(_facingAngle), 0, Mathf.Sin(_facingAngle));
+			direction = (forward * -inputDir.Y + right * inputDir.X).Normalized();
 		}
-		Vector3 direction = (Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
 
 		if (direction != Vector3.Zero)
 		{
-			velocity.X = direction.X * Speed;
-			velocity.Z = direction.Z * Speed;
+			velocity.X = direction.X * _currentSpeed;
+			velocity.Z = direction.Z * _currentSpeed;
 		}
 		else
 		{
-			velocity.X = Mathf.MoveToward(velocity.X, 0, Speed);
-			velocity.Z = Mathf.MoveToward(velocity.Z, 0, Speed);
+			velocity.X = Mathf.MoveToward(velocity.X, 0, _currentSpeed);
+			velocity.Z = Mathf.MoveToward(velocity.Z, 0, _currentSpeed);
 		}
 
 		Velocity = velocity;
@@ -182,6 +222,29 @@ public partial class Player : CharacterBody3D
 			{
 				ball.RecordContact(GlobalPosition);
 			}
+
+			// IA evita el poste de la canasta: detectar colisión y esquivar.
+			if (IsAI && _postAvoidTimer <= 0.0f)
+			{
+				var collider = GetSlideCollision(i).GetCollider();
+				if (collider is StaticBody3D sb && ((string)sb.Name == "Basket" || (string)sb.Name == "Basket2"))
+				{
+					// Dirección perpendicular aleatoria (izq/der) relativa al poste.
+					Vector3 toPost = sb.GlobalPosition - GlobalPosition;
+					toPost.Y = 0;
+					Vector3 perp = toPost.Cross(Vector3.Up).Normalized();
+					if (perp.LengthSquared() < 0.001f)
+						perp = Vector3.Right;
+					_postAvoidDirection = GD.Randf() > 0.5f ? perp : -perp;
+					_postAvoidTimer = AIPostAvoidDuration;
+				}
+			}
+		}
+
+		// Timer de evasión de poste.
+		if (_postAvoidTimer > 0.0f)
+		{
+			_postAvoidTimer -= (float)delta;
 		}
 
 		if (_canVolley && kickPressed)
@@ -226,15 +289,7 @@ public partial class Player : CharacterBody3D
 				_facingAngle = Mathf.Atan2(toHoop.X, -toHoop.Z);
 			}
 		}
-		else if (moveDir.LengthSquared() > 0.001f)
-		{
-			// Sin apuntado automático: al moverse se mira hacia donde se camina
-			// (A/D son strafe, S retrocede); con Q/E el jugador apunta a mano.
-			float target = Mathf.Atan2(moveDir.X, -moveDir.Z);
-			float diff = Mathf.AngleDifference(_facingAngle, target);
-			float maxStep = Mathf.DegToRad(MoveTurnSpeedDeg) * delta;
-			_facingAngle = Mathf.Abs(diff) <= maxStep ? target : _facingAngle + Mathf.Sign(diff) * maxStep;
-		}
+
 
 		if (_visual != null)
 		{
@@ -253,7 +308,7 @@ public partial class Player : CharacterBody3D
 		}
 
 		// Amplitud proporcional a la velocidad real: quieto = pie firme.
-		float speedRatio = Mathf.Clamp(new Vector2(Velocity.X, Velocity.Z).Length() / Speed, 0.0f, 1.0f);
+		float speedRatio = Mathf.Clamp(new Vector2(Velocity.X, Velocity.Z).Length() / SprintSpeed, 0.0f, 1.0f);
 		_strideAmp = Mathf.MoveToward(_strideAmp, Mathf.DegToRad(MaxLegSwingDeg) * speedRatio, LegSwingResponse * delta);
 		_stridePhase += StrideFrequency * speedRatio * delta;
 
@@ -378,7 +433,7 @@ public partial class Player : CharacterBody3D
 	// mayor distancia) = error aleatorio. Premia asentarse antes de tirar.
 	private Vector3 ApplyShotSpread(Vector3 dir, float distance)
 	{
-		float speedRatio = Mathf.Clamp(new Vector2(Velocity.X, Velocity.Z).Length() / Speed, 0.0f, 1.0f);
+		float speedRatio = Mathf.Clamp(new Vector2(Velocity.X, Velocity.Z).Length() / SprintSpeed, 0.0f, 1.0f);
 		float distRatio = Mathf.Clamp(distance / SpreadDistance, 0.0f, 1.0f);
 		float spreadDeg = ShotSpreadDeg * speedRatio * (0.35f + 0.65f * distRatio);
 		if (spreadDeg <= 0.01f)
