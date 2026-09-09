@@ -15,8 +15,8 @@ public partial class Player : CharacterBody3D
 	[Export] public float MaxLegSwingDeg = 28.0f;
 	[Export] public float StrideFrequency = 6.0f;
 	[Export] public float LegSwingResponse = 8.0f;
-	[Export] public Vector3 HoopPosition = new(0, 3.0f, -13.1f);
-	[Export] public Vector3 SecondHoopPosition = new(0, 3.0f, 13.1f);
+	[Export] public Vector3 HoopPosition = new(0, 3.0f, -20.0f);
+	[Export] public Vector3 SecondHoopPosition = new(0, 3.0f, 20.0f);
 	[Export] public float KickAngleDegrees = 65.0f;
 	[Export] public float MinKickSpeed = 5.0f;
 	[Export] public float MaxKickSpeed = 15.5f;
@@ -43,8 +43,21 @@ public partial class Player : CharacterBody3D
 	[Export] public float AIMinShootDistance = 3.0f;
 	[Export] public float AICarryTimeBeforeShot = 1.0f;
 	[Export] public float AIGrabStopRadius = 0.9f;
-	[Export] public float AISpeedFactor = 0.85f;
+	[Export] public float AISpeedFactor = 0.72f;
 	[Export] public float AIPostAvoidDuration = 0.5f;
+	[Export] public float CourtHalfWidth = 10.0f;
+	[Export] public float CourtHalfLength = 20.0f;
+	[Export] public float StealRadius = 2.6f;
+	[Export] public float StealForwardReach = 1.2f;
+	[Export] public float StealCooldown = 0.45f;
+	[Export] public float LostBallStealLockout = 0.8f;
+	[Export] public float AIBallControlLockout = 3.0f;
+	[Export] public float StealDuration = 0.32f;
+	[Export] public float SlideStealRadius = 3.6f;
+	[Export] public float SlideStealForwardReach = 2.2f;
+	[Export] public float SlideStealDuration = 0.55f;
+	[Export] public float SlideStealSpeed = 8.5f;
+	[Export] public float CourtClampMargin = 0.35f;
 
 	private Ball _ball;
 	private Node3D _visual;
@@ -61,6 +74,11 @@ public partial class Player : CharacterBody3D
 	private bool _canVolley;
 	private float _currentSpeed;
 	private float _postAvoidTimer;
+	private float _stealCooldown;
+	private float _ballControlLockout;
+	private float _stealTimer;
+	private bool _slidingSteal;
+	private Vector3 _slideDirection;
 	private Vector3 _postAvoidDirection;
 
 	public Vector3 FacingDirection => new(Mathf.Sin(_facingAngle), 0, -Mathf.Cos(_facingAngle));
@@ -78,6 +96,34 @@ public partial class Player : CharacterBody3D
 		}
 		_legLeft = GetNodeOrNull<Node3D>("Visual/LegPivotLeft");
 		_legRight = GetNodeOrNull<Node3D>("Visual/LegPivotRight");
+	}
+
+	public void PrepareCenterRestart(Vector3 position)
+	{
+		GlobalPosition = position;
+		Velocity = Vector3.Zero;
+		_charging = false;
+		_kickCharge = 0.0f;
+		_aiCarryTime = 0.0f;
+		_canVolley = false;
+		_kickCooldown = KickGrabCooldown;
+
+		Vector3 toHoop = TargetHoop(position) - position;
+		toHoop.Y = 0.0f;
+		if (toHoop.LengthSquared() > 0.001f)
+		{
+			_facingAngle = Mathf.Atan2(toHoop.X, -toHoop.Z);
+		}
+
+		_ball.ResumeAfterRestart();
+		_ball.RecordContact(GlobalPosition);
+		_ball.RecordTouchPlayer(this);
+		_ball.Grab(this);
+
+		if (_visual != null)
+		{
+			_visual.Rotation = new Vector3(0, -_facingAngle, 0);
+		}
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -98,6 +144,8 @@ public partial class Player : CharacterBody3D
 		bool kickHeld = false;
 		bool kickReleased = false;
 		bool bouncePressed = false;
+		bool stealPressed = false;
+		bool slideStealPressed = false;
 		Vector3 direction;
 		if (IsAI)
 		{
@@ -128,6 +176,8 @@ public partial class Player : CharacterBody3D
 			Vector2 inputDir = new Vector2(strafe, moveForward ? -1.0f : 0.0f);
 
 			bouncePressed = Input.IsActionJustPressed("bounce");
+			stealPressed = Input.IsActionJustPressed("steal");
+			slideStealPressed = stealPressed && Input.IsKeyPressed(Key.Shift);
 			kickPressed = Input.IsActionJustPressed("kick");
 			kickHeld = Input.IsActionPressed("kick");
 			kickReleased = Input.IsActionJustReleased("kick");
@@ -146,7 +196,13 @@ public partial class Player : CharacterBody3D
 			direction = (forward * -inputDir.Y + right * inputDir.X).Normalized();
 		}
 
-		if (direction != Vector3.Zero)
+		if (_slidingSteal)
+		{
+			direction = _slideDirection;
+			velocity.X = _slideDirection.X * SlideStealSpeed;
+			velocity.Z = _slideDirection.Z * SlideStealSpeed;
+		}
+		else if (direction != Vector3.Zero)
 		{
 			velocity.X = direction.X * _currentSpeed;
 			velocity.Z = direction.Z * _currentSpeed;
@@ -159,6 +215,7 @@ public partial class Player : CharacterBody3D
 
 		Velocity = velocity;
 		MoveAndSlide();
+		ClampInsideCourt();
 
 		if (GlobalPosition.Y < RespawnBelow)
 		{
@@ -178,10 +235,41 @@ public partial class Player : CharacterBody3D
 		{
 			_kickCooldown -= (float)delta;
 		}
+		if (_stealCooldown > 0)
+		{
+			_stealCooldown -= (float)delta;
+		}
+		if (_ballControlLockout > 0)
+		{
+			_ballControlLockout -= (float)delta;
+		}
+		if (_stealTimer > 0)
+		{
+			_stealTimer -= (float)delta;
+			if (_stealTimer <= 0.0f)
+			{
+				_slidingSteal = false;
+				if (_visual != null)
+				{
+					_visual.Position = Vector3.Zero;
+				}
+			}
+		}
 
 		if (_ball.IsCarried)
 		{
+			if (_ball.Carrier != this)
+			{
+				_charging = false;
+				_kickCharge = 0.0f;
+				_canVolley = false;
+				StartSteal(stealPressed, slideStealPressed, direction);
+				TrySteal();
+				return;
+			}
+
 			_ball.RecordContact(GlobalPosition);
+			_ball.RecordTouchPlayer(this);
 
 			if (bouncePressed)
 			{
@@ -221,11 +309,14 @@ public partial class Player : CharacterBody3D
 			return;
 		}
 
+		StartSteal(stealPressed, slideStealPressed, direction);
+
 		for (int i = 0; i < GetSlideCollisionCount(); i++)
 		{
 			if (GetSlideCollision(i).GetCollider() is Ball ball)
 			{
 				ball.RecordContact(GlobalPosition);
+				ball.RecordTouchPlayer(this);
 			}
 
 			// IA evita el poste de la canasta: detectar colisión y esquivar.
@@ -261,6 +352,7 @@ public partial class Player : CharacterBody3D
 			if (horizontalDist < HeaderRadius && ballY > HeaderMinHeight && ballY < HeaderMaxHeight)
 			{
 				_ball.RecordContact(GlobalPosition);
+				_ball.RecordTouchPlayer(this);
 				Vector3 headerDir = ApplyShotSpread(FacingDirection, DistanceToHoop(_ball.GlobalPosition));
 				FireKickWithSpeed(HeaderSpeed, headerDir, HeaderAngleDegrees);
 				_kickCooldown = KickGrabCooldown;
@@ -275,6 +367,7 @@ public partial class Player : CharacterBody3D
 			if (toBall.Length() < VolleyRadius && _ball.GlobalPosition.Y < VolleyMaxHeight)
 			{
 				_ball.RecordContact(GlobalPosition);
+				_ball.RecordTouchPlayer(this);
 				Vector3 volleyDir = ApplyShotSpread(FacingDirection, DistanceToHoop(_ball.GlobalPosition));
 				FireKickWithSpeed(VolleyKickSpeed, volleyDir);
 				_kickCooldown = KickGrabCooldown;
@@ -282,10 +375,13 @@ public partial class Player : CharacterBody3D
 			}
 		}
 
+		TrySteal();
+
 		Vector3 grabToBall = _ball.GlobalPosition - GlobalPosition;
 		grabToBall.Y = 0;
-		if (_kickCooldown <= 0 && grabToBall.Length() < GrabRadius && _ball.GlobalPosition.Y < GrabMaxHeight)
+		if (_kickCooldown <= 0 && _ballControlLockout <= 0.0f && grabToBall.Length() < GrabRadius && _ball.GlobalPosition.Y < GrabMaxHeight)
 		{
+			_ball.RecordTouchPlayer(this);
 			_ball.Grab(this);
 		}
 	}
@@ -326,6 +422,42 @@ public partial class Player : CharacterBody3D
 		if (_legLeft == null || _legRight == null)
 		{
 			return;
+		}
+
+		if (_stealTimer > 0.0f)
+		{
+			float totalDuration = _slidingSteal ? SlideStealDuration : StealDuration;
+			float progress = 1.0f - Mathf.Clamp(_stealTimer / totalDuration, 0.0f, 1.0f);
+			float extension = Mathf.Sin(progress * Mathf.Pi);
+			float kickPitch = Mathf.Lerp(Mathf.DegToRad(-12.0f), Mathf.DegToRad(-78.0f), extension);
+			float bracePitch = Mathf.Lerp(Mathf.DegToRad(6.0f), Mathf.DegToRad(34.0f), extension);
+			if (_slidingSteal)
+			{
+				kickPitch = Mathf.Lerp(Mathf.DegToRad(-28.0f), Mathf.DegToRad(-102.0f), extension);
+				bracePitch = Mathf.Lerp(Mathf.DegToRad(18.0f), Mathf.DegToRad(72.0f), extension);
+				if (_visual != null)
+				{
+					_visual.Position = new Vector3(0.0f, -0.28f * extension, 0.0f);
+				}
+			}
+
+			float stealYaw = 0.0f;
+			Vector3 attackDir = _slidingSteal ? _slideDirection : FacingDirection;
+			if (_visual != null && attackDir.LengthSquared() > 0.001f)
+			{
+				Vector3 localDir = _visual.GlobalBasis.Inverse() * attackDir;
+				stealYaw = Mathf.Atan2(-localDir.X, -localDir.Z);
+			}
+
+			Quaternion stealYawQuat = new Quaternion(Vector3.Up, stealYaw);
+			_legRight.Transform = new Transform3D(new Basis(stealYawQuat * new Quaternion(Vector3.Right, kickPitch)), _legRight.Transform.Origin);
+			_legLeft.Transform = new Transform3D(new Basis(stealYawQuat * new Quaternion(Vector3.Right, bracePitch)), _legLeft.Transform.Origin);
+			return;
+		}
+
+		if (_visual != null)
+		{
+			_visual.Position = Vector3.Zero;
 		}
 
 		// Amplitud proporcional a la velocidad real: quieto = pie firme.
@@ -395,13 +527,154 @@ public partial class Player : CharacterBody3D
 		}
 
 		_aiCarryTime = 0.0f;
-		Vector3 toBall = _ball.GlobalPosition - GlobalPosition;
+		Vector3 target = _ball.Carrier is Player carrier ? carrier.GlobalPosition : _ball.GlobalPosition;
+		Vector3 toBall = target - GlobalPosition;
 		toBall.Y = 0;
 		if (toBall.Length() < AIGrabStopRadius)
 		{
 			return Vector2.Zero;
 		}
-		return new Vector2(toBall.X, toBall.Z);
+		Vector3 input = KeepInsideCourt(toBall);
+		return new Vector2(input.X, input.Z);
+	}
+
+	private void StartSteal(bool stealPressed, bool slideStealPressed, Vector3 moveDirection)
+	{
+		if (!stealPressed || _stealCooldown > 0.0f || _stealTimer > 0.0f)
+			return;
+
+		if (IsAI)
+			return;
+
+		float speed = new Vector2(Velocity.X, Velocity.Z).Length();
+		_slidingSteal = slideStealPressed || speed > JogSpeed + 0.5f;
+		_stealTimer = _slidingSteal ? SlideStealDuration : StealDuration;
+		_stealCooldown = _slidingSteal ? StealCooldown + 0.35f : StealCooldown;
+		_slideDirection = moveDirection.LengthSquared() > 0.001f ? moveDirection.Normalized() : FacingDirection;
+
+		// El humano tiene prioridad al iniciar un robo: evita que la IA recupere
+		// la pelota en el mismo instante y permite comprobar el robo sin disputa.
+		if (_ball.Carrier is Player aiCarrier && aiCarrier.IsAI)
+		{
+			Vector3 toCarrier = aiCarrier.GlobalPosition - GlobalPosition;
+			toCarrier.Y = 0.0f;
+			float challengeRadius = _slidingSteal ? SlideStealRadius : StealRadius;
+			if (toCarrier.Length() <= challengeRadius)
+			{
+				aiCarrier.DisableBallControl();
+				_ball.RecordContact(GlobalPosition);
+				_ball.RecordTouchPlayer(this);
+				_ball.Grab(this);
+				_stealTimer = 0.0f;
+				_slidingSteal = false;
+			}
+		}
+	}
+
+	private void TrySteal()
+	{
+		if (_ballControlLockout > 0.0f || _ball.Carrier == this)
+			return;
+		if (IsAI && (_stealCooldown > 0.0f || _ball.Carrier == null))
+			return;
+		if (!IsAI && _stealTimer <= 0.0f)
+			return;
+
+		Vector3 toBall = _ball.GlobalPosition - GlobalPosition;
+		toBall.Y = 0.0f;
+		Vector3 toCarrier = _ball.Carrier != null
+			? _ball.Carrier.GlobalPosition - GlobalPosition
+			: toBall;
+		toCarrier.Y = 0.0f;
+		float radius = IsAI ? StealRadius : (_slidingSteal ? SlideStealRadius : StealRadius);
+		float forwardReach = IsAI ? StealForwardReach : (_slidingSteal ? SlideStealForwardReach : StealForwardReach);
+
+		Vector3 stealDir = _slidingSteal ? _slideDirection : FacingDirection;
+		if (IsAI)
+		{
+			stealDir = toCarrier.LengthSquared() > 0.001f ? toCarrier.Normalized() : FacingDirection;
+		}
+		float closestDistance = Mathf.Min(toCarrier.Length(), toBall.Length());
+		if (closestDistance > radius)
+			return;
+
+		if (IsAI)
+		{
+			// La IA sigue usando un alcance direccional para que no robe desde
+			// cualquier ángulo mientras persigue al rival.
+			Vector3 footReach = GlobalPosition + stealDir * forwardReach;
+			Vector3 carrierPos = _ball.Carrier.GlobalPosition;
+			Vector3 ballPos = _ball.GlobalPosition;
+			footReach.Y = carrierPos.Y = ballPos.Y = 0.0f;
+			if (footReach.DistanceTo(carrierPos) > StealRadius && footReach.DistanceTo(ballPos) > StealRadius)
+				return;
+		}
+
+		Player previousCarrier = _ball.Carrier as Player;
+		_ball.RecordContact(GlobalPosition);
+		_ball.RecordTouchPlayer(this);
+		_ball.Grab(this);
+		_stealCooldown = StealCooldown;
+		if (previousCarrier != null)
+		{
+			previousCarrier.LockStealingAfterLoss();
+		}
+		_kickCooldown = 0.0f;
+		_aiCarryTime = 0.0f;
+		_slidingSteal = false;
+		_stealTimer = 0.0f;
+	}
+
+	private void LockStealingAfterLoss()
+	{
+		_stealCooldown = Mathf.Max(_stealCooldown, LostBallStealLockout);
+		_stealTimer = 0.0f;
+		_slidingSteal = false;
+	}
+
+	private void DisableBallControl()
+	{
+		_ballControlLockout = Mathf.Max(_ballControlLockout, AIBallControlLockout);
+		LockStealingAfterLoss();
+	}
+
+	private void ClampInsideCourt()
+	{
+		Vector3 before = GlobalPosition;
+		float x = Mathf.Clamp(GlobalPosition.X, -CourtHalfWidth + CourtClampMargin, CourtHalfWidth - CourtClampMargin);
+		float z = Mathf.Clamp(GlobalPosition.Z, -CourtHalfLength + CourtClampMargin, CourtHalfLength - CourtClampMargin);
+		bool clampedX = !Mathf.IsEqualApprox(x, before.X);
+		bool clampedZ = !Mathf.IsEqualApprox(z, before.Z);
+		if (!clampedX && !clampedZ)
+			return;
+
+		GlobalPosition = new Vector3(x, before.Y, z);
+		Velocity = new Vector3(
+			clampedX ? 0.0f : Velocity.X,
+			Velocity.Y,
+			clampedZ ? 0.0f : Velocity.Z
+		);
+	}
+
+	private Vector3 KeepInsideCourt(Vector3 desired)
+	{
+		Vector3 input = desired;
+		const float margin = 0.8f;
+
+		if (GlobalPosition.X < -CourtHalfWidth + margin && input.X < 0.0f)
+			input.X = 0.0f;
+		else if (GlobalPosition.X > CourtHalfWidth - margin && input.X > 0.0f)
+			input.X = 0.0f;
+
+		if (GlobalPosition.Z < -CourtHalfLength + margin && input.Z < 0.0f)
+			input.Z = 0.0f;
+		else if (GlobalPosition.Z > CourtHalfLength - margin && input.Z > 0.0f)
+			input.Z = 0.0f;
+
+		if (input.LengthSquared() <= 0.001f)
+			input = new Vector3(-GlobalPosition.X, 0.0f, -GlobalPosition.Z);
+
+		return input;
 	}
 
 	// Potencia justa (0..1) para que el balón, con el ángulo fijo de tiro,

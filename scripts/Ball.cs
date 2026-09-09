@@ -13,6 +13,8 @@ public partial class Ball : RigidBody3D
 	public Node3D Carrier { get; private set; }
 	public bool IsCarried => Carrier != null;
 	public Vector3 CarryDirection => _carryDirection;
+	public bool IsFrozenForRestart { get; private set; }
+	public Node3D LastTouchPlayer { get; private set; }
 
 	private CollisionShape3D _collision;
 	private Vector3 _carryDirection = Vector3.Forward;
@@ -30,6 +32,9 @@ public partial class Ball : RigidBody3D
 			return;
 		}
 
+		if (IsFrozenForRestart)
+			return;
+
 		if (GlobalPosition.Y < ResetBelow)
 		{
 			LinearVelocity = Vector3.Zero;
@@ -37,6 +42,7 @@ public partial class Ball : RigidBody3D
 			GlobalPosition = ResetPosition;
 			HasContact = false;
 			ScoredFlag = false;
+			LastTouchPlayer = null;
 		}
 	}
 
@@ -50,6 +56,28 @@ public partial class Ball : RigidBody3D
 		LastContactPosition = position;
 		HasContact = true;
 		ScoredFlag = false;
+	}
+
+	public void RecordTouchPlayer(Node3D player)
+	{
+		LastTouchPlayer = player;
+	}
+
+	public void FreezeForRestart()
+	{
+		Freeze = true;
+		LinearVelocity = Vector3.Zero;
+		AngularVelocity = Vector3.Zero;
+		IsFrozenForRestart = true;
+		_collision.Disabled = true;
+	}
+
+	public void ResumeAfterRestart()
+	{
+		IsFrozenForRestart = false;
+		Freeze = false;
+		_collision.Disabled = false;
+		AngularVelocity = Vector3.Zero;
 	}
 
 	public void Grab(Node3D carrier)
