@@ -370,10 +370,12 @@ mesh = SubResource("BallMesh")
 shape = SubResource("BallShape")
 
 [node name="Player" type="CharacterBody3D" parent="." unique_id=1862361100]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 1, 5)
 script = ExtResource("1")
 BallPath = NodePath("../Ball")
 VisualPath = NodePath("Visual")
+RespawnPosition = Vector3(-2.2, 1, 5)
+TeamId = 0
 
 [node name="Visual" type="Node3D" parent="Player" unique_id=980591024]
 
@@ -441,11 +443,89 @@ mesh = SubResource("BootMesh")
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player" unique_id=193557354]
 shape = SubResource("PlayerShape")
 
-[node name="Player2" type="CharacterBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -1)
+[node name="PlayerBlueAI" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 1, 5)
 script = ExtResource("1")
 BallPath = NodePath("../Ball")
 VisualPath = NodePath("Visual")
+RespawnPosition = Vector3(2.2, 1, 5)
+TeamId = 0
+IsAI = true
+Role = 1
+
+[node name="Visual" type="Node3D" parent="PlayerBlueAI"]
+
+[node name="Head" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("HeadMesh")
+
+[node name="Torso" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
+material_override = SubResource("MatPlayer")
+mesh = SubResource("TorsoMesh")
+
+[node name="Shorts" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+material_override = SubResource("MatShorts")
+mesh = SubResource("ShortsMesh")
+
+[node name="ArmLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="ArmRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="LegPivotLeft" type="Node3D" parent="PlayerBlueAI/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
+
+[node name="UpperLegLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
+
+[node name="LegPivotRight" type="Node3D" parent="PlayerBlueAI/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
+
+[node name="UpperLegRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
+
+[node name="PlayerCollision" type="CollisionShape3D" parent="PlayerBlueAI"]
+shape = SubResource("PlayerShape")
+
+[node name="Player2" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 1, -5)
+script = ExtResource("1")
+BallPath = NodePath("../Ball")
+VisualPath = NodePath("Visual")
+RespawnPosition = Vector3(-2.2, 1, -5)
+TeamId = 1
 IsAI = true
 
 [node name="Visual" type="Node3D" parent="Player2"]
@@ -512,6 +592,82 @@ material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player2"]
+shape = SubResource("PlayerShape")
+
+[node name="PlayerRedAI2" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 1, -5)
+script = ExtResource("1")
+BallPath = NodePath("../Ball")
+VisualPath = NodePath("Visual")
+RespawnPosition = Vector3(2.2, 1, -5)
+TeamId = 1
+IsAI = true
+Role = 1
+
+[node name="Visual" type="Node3D" parent="PlayerRedAI2"]
+
+[node name="Head" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("HeadMesh")
+
+[node name="Torso" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
+material_override = SubResource("MatPlayer2")
+mesh = SubResource("TorsoMesh")
+
+[node name="Shorts" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+material_override = SubResource("MatShorts")
+mesh = SubResource("ShortsMesh")
+
+[node name="ArmLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="ArmRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("ArmMesh")
+
+[node name="LegPivotLeft" type="Node3D" parent="PlayerRedAI2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
+
+[node name="UpperLegLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
+
+[node name="LegPivotRight" type="Node3D" parent="PlayerRedAI2/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
+
+[node name="UpperLegRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("UpperLegMesh")
+
+[node name="LowerLegRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
+material_override = SubResource("MatSkin")
+mesh = SubResource("LowerLegMesh")
+
+[node name="BootRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
+material_override = SubResource("MatBoots")
+mesh = SubResource("BootMesh")
+
+[node name="PlayerCollision" type="CollisionShape3D" parent="PlayerRedAI2"]
 shape = SubResource("PlayerShape")
 
 [node name="BoundaryDetector" type="Node3D" parent="."]

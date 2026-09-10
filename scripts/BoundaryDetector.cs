@@ -15,8 +15,6 @@ public partial class BoundaryDetector : Node3D
 	public enum BoundarySide { LateralLeft, LateralRight, GoalLineSouth, GoalLineNorth }
 
 	private Ball _ball;
-	private Player _player1;
-	private Player _player2;
 	private bool _restartPending;
 	private BoundarySide _pendingSide;
 	private Player _restartPlayer;
@@ -25,8 +23,6 @@ public partial class BoundaryDetector : Node3D
 	public override void _Ready()
 	{
 		_ball = GetNode<Ball>(BallPath);
-		_player1 = GetNode<Player>(Player1Path);
-		_player2 = GetNode<Player>(Player2Path);
 
 		var lateralLeft = GetNode<Area3D>("LateralLeft");
 		var lateralRight = GetNode<Area3D>("LateralRight");
@@ -72,18 +68,33 @@ public partial class BoundaryDetector : Node3D
 		_restartPlayer.PrepareCenterRestart(RestartPosition);
 
 		string type = "Reposición";
-		string playerName = _restartPlayer.IsAI ? "Equipo Rojo" : "Equipo Azul";
+		string playerName = Player.TeamName(_restartPlayer.TeamId);
 		EmitSignal(SignalName.RestartTriggered, type, playerName);
 	}
 
 	private Player DetermineRestartPlayer()
 	{
-		if (_ball.LastTouchPlayer == _player1)
-			return _player2;
+		int restartTeamId = 0;
+		if (_ball.LastTouchPlayer is Player lastTouch)
+		{
+			restartTeamId = lastTouch.TeamId == 0 ? 1 : 0;
+		}
 
-		if (_ball.LastTouchPlayer == _player2)
-			return _player1;
+		Player closest = null;
+		float bestDistanceSq = float.PositiveInfinity;
+		foreach (Player player in Player.Players)
+		{
+			if (!IsInstanceValid(player) || player.TeamId != restartTeamId)
+				continue;
 
-		return _player1;
+			float distanceSq = player.GlobalPosition.DistanceSquaredTo(RestartPosition);
+			if (distanceSq < bestDistanceSq)
+			{
+				bestDistanceSq = distanceSq;
+				closest = player;
+			}
+		}
+
+		return closest ?? GetNode<Player>(Player1Path);
 	}
 }

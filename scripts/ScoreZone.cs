@@ -2,7 +2,7 @@ using Godot;
 
 public partial class ScoreZone : Area3D
 {
-	[Signal] public delegate void ShotScoredEventHandler(int points, bool scorerIsAI);
+	[Signal] public delegate void ShotScoredEventHandler(int points, int scorerTeamId);
 
 	[Export] public float ThreePointRadius = 6.75f;
 	[Export] public float EntryRadius = 0.15f;
@@ -39,11 +39,11 @@ public partial class ScoreZone : Area3D
 			{
 				Vector2 contact = new(_ball.LastContactPosition.X, _ball.LastContactPosition.Z);
 				int points = contact.DistanceTo(hoop) > ThreePointRadius ? 3 : 2;
-				bool scorerIsAI = _ball.LastTouchPlayer is Player player && player.IsAI;
+				int scorerTeamId = _ball.LastTouchPlayer is Player player ? player.TeamId : 0;
 
 				_ball.MarkScored();
-				EmitSignal(SignalName.ShotScored, points, scorerIsAI);
-				GD.Print($"Canasta! +{points} puntos ({(scorerIsAI ? "Rojo" : "Azul")})");
+				EmitSignal(SignalName.ShotScored, points, scorerTeamId);
+				GD.Print($"Canasta! +{points} puntos ({Player.TeamName(scorerTeamId)})");
 			}
 		}
 

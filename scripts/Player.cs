@@ -1,7 +1,12 @@
 using Godot;
+using System.Collections.Generic;
 
 public partial class Player : CharacterBody3D
 {
+	public enum AIRole { Primary, Support }
+
+	private static readonly List<Player> AllPlayers = new();
+
 	[Export] public float WalkSpeed = 3.0f;
 	[Export] public float JogSpeed = 6.0f;
 	[Export] public float SprintSpeed = 9.0f;
@@ -38,7 +43,9 @@ public partial class Player : CharacterBody3D
 	[Export] public float HeaderAngleDegrees = 30.0f;
 	[Export] public Vector3 RespawnPosition = new(0, 1, 1);
 	[Export] public float RespawnBelow = -3.0f;
+	[Export] public int TeamId = 0;
 	[Export] public bool IsAI = false;
+	[Export] public AIRole Role = AIRole.Primary;
 	[Export] public float AIShootDistance = 7.0f;
 	[Export] public float AIMinShootDistance = 3.0f;
 	[Export] public float AICarryTimeBeforeShot = 1.0f;
@@ -83,9 +90,16 @@ public partial class Player : CharacterBody3D
 
 	public Vector3 FacingDirection => new(Mathf.Sin(_facingAngle), 0, -Mathf.Cos(_facingAngle));
 	public float KickCharge => _kickCharge;
+	public static IReadOnlyList<Player> Players => AllPlayers;
+	public static string TeamName(int teamId) => teamId == 0 ? "Equipo Azul" : "Equipo Rojo";
 
 	public override void _Ready()
 	{
+		if (!AllPlayers.Contains(this))
+		{
+			AllPlayers.Add(this);
+		}
+
 		if (BallPath != null)
 		{
 			_ball = GetNode<Ball>(BallPath);
@@ -96,6 +110,11 @@ public partial class Player : CharacterBody3D
 		}
 		_legLeft = GetNodeOrNull<Node3D>("Visual/LegPivotLeft");
 		_legRight = GetNodeOrNull<Node3D>("Visual/LegPivotRight");
+	}
+
+	public override void _ExitTree()
+	{
+		AllPlayers.Remove(this);
 	}
 
 	public void PrepareCenterRestart(Vector3 position)
@@ -527,15 +546,104 @@ public partial class Player : CharacterBody3D
 		}
 
 		_aiCarryTime = 0.0f;
-		Vector3 target = _ball.Carrier is Player carrier ? carrier.GlobalPosition : _ball.GlobalPosition;
-		Vector3 toBall = target - GlobalPosition;
-		toBall.Y = 0;
-		if (toBall.Length() < AIGrabStopRadius)
+		Vector3 target = ChooseAITarget();
+		Vector3 toTarget = target - GlobalPosition;
+		toTarget.Y = 0;
+		if (toTarget.Length() < AIGrabStopRadius)
 		{
 			return Vector2.Zero;
 		}
-		Vector3 input = KeepInsideCourt(toBall);
+		Vector3 input = KeepInsideCourt(toTarget + SeparationVector() * 1.4f);
 		return new Vector2(input.X, input.Z);
+	}
+
+	private Vector3 ChooseAITarget()
+	{
+		if (_ball.Carrier is Player carrier)
+		{
+			if (carrier.TeamId == TeamId)
+			{
+				return SupportAttackPosition(carrier);
+			}
+
+			return Role == AIRole.Primary ? carrier.GlobalPosition : SupportDefensePosition(carrier);
+		}
+
+		Player closestTeamMate = ClosestPlayerToBall(TeamId);
+		if (closestTeamMate == this)
+		{
+			return _ball.GlobalPosition;
+		}
+
+		return Role == AIRole.Primary ? SupportDefensePosition(null) : SupportAttackPosition(null);
+	}
+
+	private Vector3 SupportAttackPosition(Player carrier)
+	{
+		Vector3 hoop = TargetHoop(GlobalPosition);
+		Vector3 baseFrom = carrier != null ? carrier.GlobalPosition : _ball.GlobalPosition;
+		Vector3 awayFromHoop = baseFrom - hoop;
+		awayFromHoop.Y = 0.0f;
+		if (awayFromHoop.LengthSquared() < 0.01f)
+			awayFromHoop = TeamId == 0 ? Vector3.Back : Vector3.Forward;
+		awayFromHoop = awayFromHoop.Normalized();
+		Vector3 lateral = new(-awayFromHoop.Z, 0.0f, awayFromHoop.X);
+		float side = Role == AIRole.Support ? 1.0f : -1.0f;
+		Vector3 target = baseFrom + awayFromHoop * 3.0f + lateral * side * 3.5f;
+		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + 1.2f, CourtHalfWidth - 1.2f);
+		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + 1.2f, CourtHalfLength - 1.2f);
+		target.Y = GlobalPosition.Y;
+		return target;
+	}
+
+	private Vector3 SupportDefensePosition(Player carrier)
+	{
+		Vector3 ownHoop = TeamId == 0 ? SecondHoopPosition : HoopPosition;
+		Vector3 threat = carrier != null ? carrier.GlobalPosition : _ball.GlobalPosition;
+		Vector3 target = ownHoop.Lerp(threat, Role == AIRole.Support ? 0.35f : 0.55f);
+		target.X += Role == AIRole.Support ? 2.2f : -2.2f;
+		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + 1.2f, CourtHalfWidth - 1.2f);
+		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + 1.2f, CourtHalfLength - 1.2f);
+		target.Y = GlobalPosition.Y;
+		return target;
+	}
+
+	private Vector3 SeparationVector()
+	{
+		Vector3 push = Vector3.Zero;
+		foreach (Player other in AllPlayers)
+		{
+			if (other == this || !IsInstanceValid(other))
+				continue;
+
+			Vector3 away = GlobalPosition - other.GlobalPosition;
+			away.Y = 0.0f;
+			float distance = away.Length();
+			if (distance > 0.01f && distance < 1.4f)
+			{
+				push += away.Normalized() * (1.4f - distance);
+			}
+		}
+		return push;
+	}
+
+	private static Player ClosestPlayerToBall(int teamId)
+	{
+		Player closest = null;
+		float bestDistanceSq = float.PositiveInfinity;
+		foreach (Player player in AllPlayers)
+		{
+			if (!IsInstanceValid(player) || player.TeamId != teamId || player._ball == null)
+				continue;
+
+			float distanceSq = player.GlobalPosition.DistanceSquaredTo(player._ball.GlobalPosition);
+			if (distanceSq < bestDistanceSq)
+			{
+				bestDistanceSq = distanceSq;
+				closest = player;
+			}
+		}
+		return closest;
 	}
 
 	private void StartSteal(bool stealPressed, bool slideStealPressed, Vector3 moveDirection)
@@ -718,14 +826,11 @@ public partial class Player : CharacterBody3D
 		return new Vector3(flat.X, 0, flat.Z).Length();
 	}
 
-	// Con dos canastas, el jugador ataca siempre la que le queda más cerca.
+	// En juego de equipos cada lado ataca un aro fijo, para que la defensa y
+	// los apoyos tengan una referencia estable.
 	private Vector3 TargetHoop(Vector3 from)
 	{
-		Vector3 toFirst = HoopPosition - from;
-		toFirst.Y = 0;
-		Vector3 toSecond = SecondHoopPosition - from;
-		toSecond.Y = 0;
-		return toFirst.LengthSquared() <= toSecond.LengthSquared() ? HoopPosition : SecondHoopPosition;
+		return TeamId == 0 ? HoopPosition : SecondHoopPosition;
 	}
 
 	// Dispersión del tiro: parado y cerca del aro = precisión; corriendo (y a

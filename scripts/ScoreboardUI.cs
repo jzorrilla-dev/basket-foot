@@ -41,15 +41,15 @@ public partial class ScoreboardUI : CanvasLayer
 		}
 	}
 
-	private void OnShotScored(int points, bool scorerIsAI)
+	private void OnShotScored(int points, int scorerTeamId)
 	{
-		if (scorerIsAI)
+		if (scorerTeamId == 1)
 			_redScore += points;
 		else
 			_blueScore += points;
 
 		UpdateScoreLabel();
-		_lastScoreLabel.Text = $"+{points} {(scorerIsAI ? "ROJO" : "AZUL")}";
+		_lastScoreLabel.Text = $"+{points} {(scorerTeamId == 1 ? "ROJO" : "AZUL")}";
 		_lastScoreLabel.Modulate = Colors.White;
 		_lastScoreLabel.Visible = true;
 		_flashTimer = FlashDuration;
