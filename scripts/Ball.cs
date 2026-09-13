@@ -6,6 +6,7 @@ public partial class Ball : RigidBody3D
 	[Export] public float ResetBelow = -3.0f;
 	[Export] public float CarryForward = 0.7f;
 	[Export] public float CarryDrop = 0.75f;
+	[Export] public float SmoothGrabFollowSpeed = 14.0f;
 
 	public Vector3 LastContactPosition { get; private set; }
 	public bool HasContact { get; private set; }
@@ -18,6 +19,7 @@ public partial class Ball : RigidBody3D
 
 	private CollisionShape3D _collision;
 	private Vector3 _carryDirection = Vector3.Forward;
+	private bool _smoothNextGrab;
 
 	public override void _Ready()
 	{
@@ -80,13 +82,14 @@ public partial class Ball : RigidBody3D
 		AngularVelocity = Vector3.Zero;
 	}
 
-	public void Grab(Node3D carrier)
+	public void Grab(Node3D carrier, bool smoothFollow = false)
 	{
 		Carrier = carrier;
 		Freeze = true;
 		LinearVelocity = Vector3.Zero;
 		AngularVelocity = Vector3.Zero;
 		_collision.Disabled = true;
+		_smoothNextGrab = smoothFollow;
 	}
 
 	public void Release(Vector3 velocity)
@@ -122,6 +125,18 @@ public partial class Ball : RigidBody3D
 			target += _carryDirection * (charge * 0.5f);
 			target.Y += charge * 0.35f;
 		}
-		GlobalPosition = target;
+		if (_smoothNextGrab)
+		{
+			float t = 1.0f - Mathf.Exp(-SmoothGrabFollowSpeed * (float)GetPhysicsProcessDeltaTime());
+			GlobalPosition = GlobalPosition.Lerp(target, t);
+			if (GlobalPosition.DistanceSquaredTo(target) < 0.0025f)
+			{
+				_smoothNextGrab = false;
+			}
+		}
+		else
+		{
+			GlobalPosition = target;
+		}
 	}
 }

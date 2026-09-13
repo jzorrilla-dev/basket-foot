@@ -54,17 +54,31 @@ public partial class Player : CharacterBody3D
 	[Export] public float AIPostAvoidDuration = 0.5f;
 	[Export] public float CourtHalfWidth = 10.0f;
 	[Export] public float CourtHalfLength = 20.0f;
-	[Export] public float StealRadius = 2.6f;
-	[Export] public float StealForwardReach = 1.2f;
-	[Export] public float StealCooldown = 0.45f;
-	[Export] public float LostBallStealLockout = 0.8f;
+	[Export] public float StealRadius = 2.2f;
+	[Export] public float StealForwardReach = 1.0f;
+	[Export] public float StealCooldown = 0.7f;
+	[Export] public float LostBallStealLockout = 1.1f;
 	[Export] public float AIBallControlLockout = 3.0f;
+	[Export] public float AIStealRadius = 1.25f;
+	[Export] public float AIStealForwardReach = 0.65f;
+	[Export] public float AIStealWindup = 0.28f;
 	[Export] public float StealDuration = 0.32f;
 	[Export] public float SlideStealRadius = 3.6f;
 	[Export] public float SlideStealForwardReach = 2.2f;
 	[Export] public float SlideStealDuration = 0.55f;
 	[Export] public float SlideStealSpeed = 8.5f;
 	[Export] public float CourtClampMargin = 0.35f;
+	[Export] public float PassMinSpeed = 7.0f;
+	[Export] public float PassMaxSpeed = 13.0f;
+	[Export] public float PassLift = 0.75f;
+	[Export] public float PassLeadTime = 0.25f;
+	[Export] public float PassMaxDistance = 16.0f;
+	[Export] public float PassReceiveDuration = 1.45f;
+	[Export] public float PassInterceptRadius = 1.5f;
+	[Export] public float AIPassConsiderTime = 0.6f;
+	[Export] public float TeamSpacingRadius = 2.6f;
+	[Export] public float OpponentSpacingRadius = 1.9f;
+	[Export] public float RivalAIShotSpreadDeg = 2.0f;
 
 	private Ball _ball;
 	private Node3D _visual;
@@ -87,6 +101,9 @@ public partial class Player : CharacterBody3D
 	private bool _slidingSteal;
 	private Vector3 _slideDirection;
 	private Vector3 _postAvoidDirection;
+	private float _receiveTimer;
+	private Vector3 _receiveTarget;
+	private float _aiStealWindupTimer;
 
 	public Vector3 FacingDirection => new(Mathf.Sin(_facingAngle), 0, -Mathf.Cos(_facingAngle));
 	public float KickCharge => _kickCharge;
@@ -145,6 +162,54 @@ public partial class Player : CharacterBody3D
 		}
 	}
 
+	public void PrepareThrowInRestart(Vector3 position, Vector3 target)
+	{
+		PrepareSetPieceRestart(position, target);
+		Vector3 releasePosition = GlobalPosition + Vector3.Up * 1.45f + FacingDirection * 0.25f;
+		_ball.GlobalPosition = releasePosition;
+		_ball.RecordContact(GlobalPosition);
+		_ball.RecordTouchPlayer(this);
+		_ball.Release(LaunchVelocity(releasePosition, target, 7.8f, 2.7f));
+		_kickCooldown = KickGrabCooldown;
+	}
+
+	public void PrepareKickInRestart(Vector3 position, Vector3 target)
+	{
+		PrepareSetPieceRestart(position, target);
+		Vector3 releasePosition = GlobalPosition + FacingDirection * 0.8f;
+		releasePosition.Y = 0.28f;
+		_ball.GlobalPosition = releasePosition;
+		_ball.RecordContact(GlobalPosition);
+		_ball.RecordTouchPlayer(this);
+		_ball.Release(LaunchVelocity(releasePosition, target, 10.5f, 0.55f));
+		_kickCooldown = KickGrabCooldown;
+	}
+
+	private void PrepareSetPieceRestart(Vector3 position, Vector3 target)
+	{
+		GlobalPosition = position;
+		Velocity = Vector3.Zero;
+		_charging = false;
+		_kickCharge = 0.0f;
+		_aiCarryTime = 0.0f;
+		_canVolley = false;
+		_receiveTimer = 0.0f;
+
+		Vector3 toTarget = target - position;
+		toTarget.Y = 0.0f;
+		if (toTarget.LengthSquared() > 0.001f)
+		{
+			_facingAngle = Mathf.Atan2(toTarget.X, -toTarget.Z);
+		}
+
+		_ball.ResumeAfterRestart();
+
+		if (_visual != null)
+		{
+			_visual.Rotation = new Vector3(0, -_facingAngle, 0);
+		}
+	}
+
 	public override void _PhysicsProcess(double delta)
 	{
 		Vector3 velocity = Velocity;
@@ -163,6 +228,7 @@ public partial class Player : CharacterBody3D
 		bool kickHeld = false;
 		bool kickReleased = false;
 		bool bouncePressed = false;
+		bool passPressed = false;
 		bool stealPressed = false;
 		bool slideStealPressed = false;
 		Vector3 direction;
@@ -176,7 +242,7 @@ public partial class Player : CharacterBody3D
 			}
 			else
 			{
-				Vector2 aiInput = ComputeAIInput(out kickPressed, out kickHeld, out kickReleased, out bouncePressed);
+				Vector2 aiInput = ComputeAIInput(out kickPressed, out kickHeld, out kickReleased, out bouncePressed, out passPressed);
 				direction = new Vector3(aiInput.X, 0, aiInput.Y).Normalized();
 				_currentSpeed = direction.LengthSquared() > 0.001f ? JogSpeed * AISpeedFactor : 0.0f;
 			}
@@ -195,6 +261,7 @@ public partial class Player : CharacterBody3D
 			Vector2 inputDir = new Vector2(strafe, moveForward ? -1.0f : 0.0f);
 
 			bouncePressed = Input.IsActionJustPressed("bounce");
+			passPressed = Input.IsActionJustPressed("pass");
 			stealPressed = Input.IsActionJustPressed("steal");
 			slideStealPressed = stealPressed && Input.IsKeyPressed(Key.Shift);
 			kickPressed = Input.IsActionJustPressed("kick");
@@ -258,9 +325,17 @@ public partial class Player : CharacterBody3D
 		{
 			_stealCooldown -= (float)delta;
 		}
+		if (!IsAI || _ball.Carrier == this || _ball.Carrier == null)
+		{
+			_aiStealWindupTimer = 0.0f;
+		}
 		if (_ballControlLockout > 0)
 		{
 			_ballControlLockout -= (float)delta;
+		}
+		if (_receiveTimer > 0)
+		{
+			_receiveTimer -= (float)delta;
 		}
 		if (_stealTimer > 0)
 		{
@@ -290,7 +365,14 @@ public partial class Player : CharacterBody3D
 			_ball.RecordContact(GlobalPosition);
 			_ball.RecordTouchPlayer(this);
 
-			if (bouncePressed)
+			if (passPressed && TryPass())
+			{
+				_kickCooldown = KickGrabCooldown;
+				_canVolley = false;
+				_charging = false;
+				_kickCharge = 0.0f;
+			}
+			else if (bouncePressed)
 			{
 				Vector3 pop = FacingDirection * BounceForwardSpeed + Vector3.Up * BounceUpSpeed;
 				_ball.Release(pop);
@@ -418,7 +500,8 @@ public partial class Player : CharacterBody3D
 		else if (IsAI && _aiWantsShoot)
 		{
 			// La IA encara el aro cuando se dispone a tirar.
-			Vector3 toHoop = TargetHoop(GlobalPosition) - GlobalPosition;
+			Vector3 from = _ball != null ? _ball.GlobalPosition : GlobalPosition;
+			Vector3 toHoop = TargetHoop(from) - from;
 			toHoop.Y = 0;
 			if (toHoop.LengthSquared() > 0.01f)
 			{
@@ -503,12 +586,13 @@ public partial class Player : CharacterBody3D
 		_legRight.Transform = new Transform3D(new Basis(yawQuat * new Quaternion(Vector3.Right, -swing)), _legRight.Transform.Origin);
 	}
 
-	private Vector2 ComputeAIInput(out bool kickPressed, out bool kickHeld, out bool kickReleased, out bool bounce)
+	private Vector2 ComputeAIInput(out bool kickPressed, out bool kickHeld, out bool kickReleased, out bool bounce, out bool pass)
 	{
 		kickPressed = false;
 		kickHeld = false;
 		kickReleased = false;
 		bounce = false;
+		pass = false;
 		_aiWantsShoot = false;
 		if (_ball == null)
 		{
@@ -520,7 +604,12 @@ public partial class Player : CharacterBody3D
 			_aiCarryTime += (float)GetPhysicsProcessDeltaTime();
 			Vector3 toHoop = TargetHoop(GlobalPosition) - GlobalPosition;
 			toHoop.Y = 0;
-			float distance = toHoop.Length();
+			float distance = DistanceToHoop(_ball.GlobalPosition);
+			if (_aiCarryTime >= AIPassConsiderTime && ShouldAIPass(distance))
+			{
+				pass = true;
+				return Vector2.Zero;
+			}
 			if (distance > AIShootDistance)
 			{
 				return new Vector2(toHoop.X, toHoop.Z);
@@ -546,6 +635,17 @@ public partial class Player : CharacterBody3D
 		}
 
 		_aiCarryTime = 0.0f;
+		if (_receiveTimer > 0.0f)
+		{
+			Vector3 toReceive = _receiveTarget - GlobalPosition;
+			toReceive.Y = 0.0f;
+			if (toReceive.Length() >= AIGrabStopRadius)
+			{
+				Vector3 receiveInput = KeepInsideCourt(toReceive + SeparationVector() * 0.7f);
+				return new Vector2(receiveInput.X, receiveInput.Z);
+			}
+		}
+
 		Vector3 target = ChooseAITarget();
 		Vector3 toTarget = target - GlobalPosition;
 		toTarget.Y = 0;
@@ -553,7 +653,7 @@ public partial class Player : CharacterBody3D
 		{
 			return Vector2.Zero;
 		}
-		Vector3 input = KeepInsideCourt(toTarget + SeparationVector() * 1.4f);
+		Vector3 input = KeepInsideCourt(toTarget + SeparationVector() * 2.2f);
 		return new Vector2(input.X, input.Z);
 	}
 
@@ -589,9 +689,9 @@ public partial class Player : CharacterBody3D
 		awayFromHoop = awayFromHoop.Normalized();
 		Vector3 lateral = new(-awayFromHoop.Z, 0.0f, awayFromHoop.X);
 		float side = Role == AIRole.Support ? 1.0f : -1.0f;
-		Vector3 target = baseFrom + awayFromHoop * 3.0f + lateral * side * 3.5f;
-		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + 1.2f, CourtHalfWidth - 1.2f);
-		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + 1.2f, CourtHalfLength - 1.2f);
+		Vector3 target = baseFrom + awayFromHoop * 5.2f + lateral * side * 5.0f;
+		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + 1.0f, CourtHalfWidth - 1.0f);
+		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + 1.0f, CourtHalfLength - 1.0f);
 		target.Y = GlobalPosition.Y;
 		return target;
 	}
@@ -600,10 +700,10 @@ public partial class Player : CharacterBody3D
 	{
 		Vector3 ownHoop = TeamId == 0 ? SecondHoopPosition : HoopPosition;
 		Vector3 threat = carrier != null ? carrier.GlobalPosition : _ball.GlobalPosition;
-		Vector3 target = ownHoop.Lerp(threat, Role == AIRole.Support ? 0.35f : 0.55f);
-		target.X += Role == AIRole.Support ? 2.2f : -2.2f;
-		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + 1.2f, CourtHalfWidth - 1.2f);
-		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + 1.2f, CourtHalfLength - 1.2f);
+		Vector3 target = ownHoop.Lerp(threat, Role == AIRole.Support ? 0.28f : 0.48f);
+		target.X += Role == AIRole.Support ? 4.0f : -3.2f;
+		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + 1.0f, CourtHalfWidth - 1.0f);
+		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + 1.0f, CourtHalfLength - 1.0f);
 		target.Y = GlobalPosition.Y;
 		return target;
 	}
@@ -619,9 +719,10 @@ public partial class Player : CharacterBody3D
 			Vector3 away = GlobalPosition - other.GlobalPosition;
 			away.Y = 0.0f;
 			float distance = away.Length();
-			if (distance > 0.01f && distance < 1.4f)
+			float desiredSpacing = other.TeamId == TeamId ? TeamSpacingRadius : OpponentSpacingRadius;
+			if (distance > 0.01f && distance < desiredSpacing)
 			{
-				push += away.Normalized() * (1.4f - distance);
+				push += away.Normalized() * (desiredSpacing - distance);
 			}
 		}
 		return push;
@@ -694,8 +795,8 @@ public partial class Player : CharacterBody3D
 			? _ball.Carrier.GlobalPosition - GlobalPosition
 			: toBall;
 		toCarrier.Y = 0.0f;
-		float radius = IsAI ? StealRadius : (_slidingSteal ? SlideStealRadius : StealRadius);
-		float forwardReach = IsAI ? StealForwardReach : (_slidingSteal ? SlideStealForwardReach : StealForwardReach);
+		float radius = IsAI ? AIStealRadius : (_slidingSteal ? SlideStealRadius : StealRadius);
+		float forwardReach = IsAI ? AIStealForwardReach : (_slidingSteal ? SlideStealForwardReach : StealForwardReach);
 
 		Vector3 stealDir = _slidingSteal ? _slideDirection : FacingDirection;
 		if (IsAI)
@@ -704,7 +805,11 @@ public partial class Player : CharacterBody3D
 		}
 		float closestDistance = Mathf.Min(toCarrier.Length(), toBall.Length());
 		if (closestDistance > radius)
+		{
+			if (IsAI)
+				_aiStealWindupTimer = 0.0f;
 			return;
+		}
 
 		if (IsAI)
 		{
@@ -714,15 +819,23 @@ public partial class Player : CharacterBody3D
 			Vector3 carrierPos = _ball.Carrier.GlobalPosition;
 			Vector3 ballPos = _ball.GlobalPosition;
 			footReach.Y = carrierPos.Y = ballPos.Y = 0.0f;
-			if (footReach.DistanceTo(carrierPos) > StealRadius && footReach.DistanceTo(ballPos) > StealRadius)
+			if (footReach.DistanceTo(carrierPos) > AIStealRadius && footReach.DistanceTo(ballPos) > AIStealRadius)
+			{
+				_aiStealWindupTimer = 0.0f;
+				return;
+			}
+
+			_aiStealWindupTimer += (float)GetPhysicsProcessDeltaTime();
+			if (_aiStealWindupTimer < AIStealWindup)
 				return;
 		}
 
 		Player previousCarrier = _ball.Carrier as Player;
 		_ball.RecordContact(GlobalPosition);
 		_ball.RecordTouchPlayer(this);
-		_ball.Grab(this);
+		_ball.Grab(this, IsAI);
 		_stealCooldown = StealCooldown;
+		_aiStealWindupTimer = 0.0f;
 		if (previousCarrier != null)
 		{
 			previousCarrier.LockStealingAfterLoss();
@@ -744,6 +857,142 @@ public partial class Player : CharacterBody3D
 	{
 		_ballControlLockout = Mathf.Max(_ballControlLockout, AIBallControlLockout);
 		LockStealingAfterLoss();
+	}
+
+	private bool TryPass()
+	{
+		Player receiver = FindBestPassReceiver();
+		if (receiver == null)
+			return false;
+
+		Vector3 target = PredictPassTarget(receiver);
+		Vector3 flat = target - _ball.GlobalPosition;
+		flat.Y = 0.0f;
+		float distance = flat.Length();
+		if (distance < 0.5f || distance > PassMaxDistance)
+			return false;
+
+		Vector3 dir = flat.Normalized();
+		float speedRatio = Mathf.Clamp(distance / PassMaxDistance, 0.0f, 1.0f);
+		float speed = Mathf.Lerp(PassMinSpeed, PassMaxSpeed, speedRatio);
+		Vector3 velocity = dir * speed + Vector3.Up * PassLift;
+
+		_ball.RecordContact(GlobalPosition);
+		_ball.RecordTouchPlayer(this);
+		_ball.Release(velocity);
+		receiver.StartReceivingPass(target);
+		return true;
+	}
+
+	private Player FindBestPassReceiver()
+	{
+		Player best = null;
+		float bestScore = float.NegativeInfinity;
+		Vector3 hoop = TargetHoop(GlobalPosition);
+		float myHoopDistance = FlatDistance(GlobalPosition, hoop);
+
+		foreach (Player player in AllPlayers)
+		{
+			if (player == this || !IsInstanceValid(player) || player.TeamId != TeamId)
+				continue;
+
+			Vector3 target = PredictPassTarget(player);
+			float distance = FlatDistance(GlobalPosition, target);
+			if (distance > PassMaxDistance)
+				continue;
+
+			float receiverHoopDistance = FlatDistance(player.GlobalPosition, hoop);
+			float progress = myHoopDistance - receiverHoopDistance;
+			float lanePenalty = PassLaneRisk(target) * 4.0f;
+			float score = progress - distance * 0.15f - lanePenalty;
+			if (!IsAI)
+			{
+				Vector3 toReceiver = player.GlobalPosition - GlobalPosition;
+				toReceiver.Y = 0.0f;
+				if (toReceiver.LengthSquared() > 0.001f)
+				{
+					score += FacingDirection.Dot(toReceiver.Normalized()) * 2.0f;
+				}
+			}
+
+			if (score > bestScore)
+			{
+				bestScore = score;
+				best = player;
+			}
+		}
+
+		return best;
+	}
+
+	private bool ShouldAIPass(float distanceToHoop)
+	{
+		if (distanceToHoop <= AIShootDistance && distanceToHoop >= AIMinShootDistance)
+			return false;
+
+		Player receiver = FindBestPassReceiver();
+		if (receiver == null)
+			return false;
+
+		Vector3 hoop = TargetHoop(GlobalPosition);
+		float myHoopDistance = FlatDistance(GlobalPosition, hoop);
+		float receiverHoopDistance = FlatDistance(receiver.GlobalPosition, hoop);
+		bool receiverImprovesAttack = receiverHoopDistance + 1.0f < myHoopDistance;
+		bool laneIsClean = PassLaneRisk(PredictPassTarget(receiver)) < 0.8f;
+		return receiverImprovesAttack && laneIsClean;
+	}
+
+	private Vector3 PredictPassTarget(Player receiver)
+	{
+		Vector3 receiverVelocity = receiver.Velocity;
+		receiverVelocity.Y = 0.0f;
+		Vector3 target = receiver.GlobalPosition + receiverVelocity * PassLeadTime;
+		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + CourtClampMargin, CourtHalfWidth - CourtClampMargin);
+		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + CourtClampMargin, CourtHalfLength - CourtClampMargin);
+		target.Y = receiver.GlobalPosition.Y;
+		return target;
+	}
+
+	private void StartReceivingPass(Vector3 target)
+	{
+		_receiveTarget = target;
+		_receiveTimer = PassReceiveDuration;
+		_ballControlLockout = 0.0f;
+	}
+
+	private float PassLaneRisk(Vector3 target)
+	{
+		Vector3 start = GlobalPosition;
+		start.Y = 0.0f;
+		Vector3 end = target;
+		end.Y = 0.0f;
+		Vector3 lane = end - start;
+		float laneLengthSq = lane.LengthSquared();
+		if (laneLengthSq < 0.001f)
+			return 0.0f;
+
+		float risk = 0.0f;
+		foreach (Player player in AllPlayers)
+		{
+			if (player == this || !IsInstanceValid(player) || player.TeamId == TeamId)
+				continue;
+
+			Vector3 point = player.GlobalPosition;
+			point.Y = 0.0f;
+			float t = Mathf.Clamp((point - start).Dot(lane) / laneLengthSq, 0.0f, 1.0f);
+			Vector3 closest = start + lane * t;
+			float distance = point.DistanceTo(closest);
+			if (distance < PassInterceptRadius)
+			{
+				risk += (PassInterceptRadius - distance) / PassInterceptRadius;
+			}
+		}
+		return risk;
+	}
+
+	private static float FlatDistance(Vector3 a, Vector3 b)
+	{
+		return new Vector2(a.X - b.X, a.Z - b.Z).Length();
 	}
 
 	private void ClampInsideCourt()
@@ -805,7 +1054,8 @@ public partial class Player : CharacterBody3D
 	private void FireKick(float powerRatio)
 	{
 		float speed = Mathf.Lerp(MinKickSpeed, MaxKickSpeed, powerRatio);
-		FireKickWithSpeed(speed, ApplyShotSpread(FacingDirection, DistanceToHoop(_ball.GlobalPosition)));
+		Vector3 dir = IsAI ? ApplyAIShotSpread(AimDirectionToHoop()) : ApplyShotSpread(FacingDirection, DistanceToHoop(_ball.GlobalPosition));
+		FireKickWithSpeed(speed, dir);
 	}
 
 	private void FireKickWithSpeed(float speed, Vector3 dir)
@@ -820,10 +1070,36 @@ public partial class Player : CharacterBody3D
 		_ball.Release(new Vector3(dir.X * speed * cosA, speed * Mathf.Sin(angle), dir.Z * speed * cosA));
 	}
 
+	private static Vector3 LaunchVelocity(Vector3 from, Vector3 target, float horizontalSpeed, float upSpeed)
+	{
+		Vector3 flat = target - from;
+		flat.Y = 0.0f;
+		Vector3 dir = flat.LengthSquared() > 0.001f ? flat.Normalized() : Vector3.Forward;
+		return dir * horizontalSpeed + Vector3.Up * upSpeed;
+	}
+
 	private float DistanceToHoop(Vector3 from)
 	{
 		Vector3 flat = TargetHoop(from) - from;
 		return new Vector3(flat.X, 0, flat.Z).Length();
+	}
+
+	private Vector3 AimDirectionToHoop()
+	{
+		Vector3 toHoop = TargetHoop(_ball.GlobalPosition) - _ball.GlobalPosition;
+		toHoop.Y = 0.0f;
+		return toHoop.LengthSquared() > 0.001f ? toHoop.Normalized() : FacingDirection;
+	}
+
+	private Vector3 ApplyAIShotSpread(Vector3 dir)
+	{
+		if (TeamId != 1 || RivalAIShotSpreadDeg <= 0.01f)
+		{
+			return dir;
+		}
+
+		float err = Mathf.DegToRad(RivalAIShotSpreadDeg) * (GD.Randf() * 2.0f - 1.0f);
+		return RotateHorizontal(dir, err);
 	}
 
 	// En juego de equipos cada lado ataca un aro fijo, para que la defensa y
