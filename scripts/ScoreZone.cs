@@ -7,6 +7,7 @@ public partial class ScoreZone : Area3D
 	[Export] public float ThreePointRadius = 6.75f;
 	[Export] public float EntryRadius = 0.3f;
 	[Export] public NodePath BallPath;
+	[Export(PropertyHint.Range, "-1,1,1")] public int ScoringTeamId = -1;
 
 	private Ball _ball;
 	private float _prevBallY = float.NaN;
@@ -39,7 +40,7 @@ public partial class ScoreZone : Area3D
 			{
 				Vector2 contact = new(_ball.LastContactPosition.X, _ball.LastContactPosition.Z);
 				int points = contact.DistanceTo(hoop) > ThreePointRadius ? 3 : 2;
-				int scorerTeamId = _ball.LastTouchPlayer is Player player ? player.TeamId : 0;
+				int scorerTeamId = ResolveScoringTeamId();
 
 				_ball.MarkScored();
 				EmitSignal(SignalName.ShotScored, points, scorerTeamId);
@@ -48,5 +49,14 @@ public partial class ScoreZone : Area3D
 		}
 
 		_prevBallY = y;
+	}
+
+	private int ResolveScoringTeamId()
+	{
+		if (ScoringTeamId is 0 or 1)
+			return ScoringTeamId;
+
+		// Respaldo para escenas antiguas: Azul ataca el aro sur y Rojo el norte.
+		return GlobalPosition.Z < 0.0f ? 0 : 1;
 	}
 }

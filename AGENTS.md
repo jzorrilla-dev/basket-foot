@@ -16,15 +16,17 @@ beyond it, 1 pt free throws). See `README.md` for the full rules.
   `Ball` (RigidBody3D), `Player` (CharacterBody3D). A large `Ground` plane
   (60×60, top at Y=0) is the only walkable surface; the court is decorative
   (embedded, no own collision, top at +0.005) so player/ball move freely
-  between court and ground with no lip. The player always attacks the **nearest**
-  basket (`TargetHoop` picks between `HoopPosition`/`SecondHoopPosition`), and
-  each basket's `ScoreZone` scores independently.
+  between court and ground with no lip. Each team has fixed ends: blue defends
+  the north basket at z=+20 and attacks south at z=-20; red defends south and
+  attacks north. Each `ScoreZone` declares its `ScoringTeamId` (south=0,
+  north=1) and falls back to its Z position if that scene property is missing.
+  Own goals are therefore awarded to the team assigned to attack that basket.
 - `scripts/Player.cs` — WASD + Space movement, pushes the ball and records the
   last contact position on it. Grabs the ball automatically when close (1 m,
   below 1.2 m height); while carrying it keeps updating the contact position.
   With `IsAI = true` (used by the scene's `Player2`, a red-torso mannequin) the
   same script is driven by `ComputeAIInput`: it chases the ball, stops to grab,
-  carries it toward the nearest hoop, backs off if under the rim, and shoots
+  carries it toward its assigned attacking hoop, backs off if under the rim, and shoots
   after `AICarryTimeBeforeShot` within `AIShootDistance`; it ignores shared
   human inputs (jump, Q/E turn) so only Player 1 reacts to the keyboard.
   The visual child (`Player/Visual`, a mannequin of primitives — head, torso,

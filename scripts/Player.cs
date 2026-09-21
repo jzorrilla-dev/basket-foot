@@ -76,6 +76,10 @@ public partial class Player : CharacterBody3D
 	[Export] public float PassReceiveDuration = 1.45f;
 	[Export] public float PassInterceptRadius = 1.5f;
 	[Export] public float AIPassConsiderTime = 0.6f;
+	[Export] public float AIPassCooldown = 1.2f;
+	[Export] public float AIPassDistanceAdvantage = 0.35f;
+	[Export] public float AIPassLaneRiskLimit = 1.1f;
+	[Export] public float AIPassCarryTime = 0.9f;
 	[Export] public float TeamSpacingRadius = 2.6f;
 	[Export] public float OpponentSpacingRadius = 1.9f;
 	[Export] public float RivalAIShotSpreadDeg = 2.0f;
@@ -89,6 +93,7 @@ public partial class Player : CharacterBody3D
 	private float _stridePhase;
 	private float _strideAmp;
 	private float _aiCarryTime;
+	private float _aiPassCooldownTimer;
 	private float _kickCharge;
 	private bool _charging;
 	private bool _aiWantsShoot;
@@ -144,7 +149,7 @@ public partial class Player : CharacterBody3D
 		_canVolley = false;
 		_kickCooldown = KickGrabCooldown;
 
-		Vector3 toHoop = TargetHoop(position) - position;
+		Vector3 toHoop = AttackingHoop() - position;
 		toHoop.Y = 0.0f;
 		if (toHoop.LengthSquared() > 0.001f)
 		{
@@ -320,6 +325,10 @@ public partial class Player : CharacterBody3D
 		if (_kickCooldown > 0)
 		{
 			_kickCooldown -= (float)delta;
+		}
+		if (_aiPassCooldownTimer > 0.0f)
+		{
+			_aiPassCooldownTimer -= (float)delta;
 		}
 		if (_stealCooldown > 0)
 		{
@@ -501,7 +510,7 @@ public partial class Player : CharacterBody3D
 		{
 			// La IA encara el aro cuando se dispone a tirar.
 			Vector3 from = _ball != null ? _ball.GlobalPosition : GlobalPosition;
-			Vector3 toHoop = TargetHoop(from) - from;
+			Vector3 toHoop = AttackingHoop() - from;
 			toHoop.Y = 0;
 			if (toHoop.LengthSquared() > 0.01f)
 			{
@@ -602,10 +611,12 @@ public partial class Player : CharacterBody3D
 		if (_ball.Carrier == this)
 		{
 			_aiCarryTime += (float)GetPhysicsProcessDeltaTime();
-			Vector3 toHoop = TargetHoop(GlobalPosition) - GlobalPosition;
+			Vector3 toHoop = AttackingHoop() - GlobalPosition;
 			toHoop.Y = 0;
 			float distance = DistanceToHoop(_ball.GlobalPosition);
-			if (_aiCarryTime >= AIPassConsiderTime && ShouldAIPass(distance))
+			if (_aiCarryTime >= AIPassConsiderTime
+				&& _aiPassCooldownTimer <= 0.0f
+				&& ShouldAIPass(distance))
 			{
 				pass = true;
 				return Vector2.Zero;
@@ -680,16 +691,18 @@ public partial class Player : CharacterBody3D
 
 	private Vector3 SupportAttackPosition(Player carrier)
 	{
-		Vector3 hoop = TargetHoop(GlobalPosition);
+		Vector3 hoop = AttackingHoop();
 		Vector3 baseFrom = carrier != null ? carrier.GlobalPosition : _ball.GlobalPosition;
-		Vector3 awayFromHoop = baseFrom - hoop;
-		awayFromHoop.Y = 0.0f;
-		if (awayFromHoop.LengthSquared() < 0.01f)
-			awayFromHoop = TeamId == 0 ? Vector3.Back : Vector3.Forward;
-		awayFromHoop = awayFromHoop.Normalized();
-		Vector3 lateral = new(-awayFromHoop.Z, 0.0f, awayFromHoop.X);
+		Vector3 towardHoop = hoop - baseFrom;
+		towardHoop.Y = 0.0f;
+		if (towardHoop.LengthSquared() < 0.01f)
+			towardHoop = TeamId == 0 ? Vector3.Back : Vector3.Forward;
+		towardHoop = towardHoop.Normalized();
+		Vector3 lateral = new(-towardHoop.Z, 0.0f, towardHoop.X);
 		float side = Role == AIRole.Support ? 1.0f : -1.0f;
-		Vector3 target = baseFrom + awayFromHoop * 5.2f + lateral * side * 5.0f;
+		// El apoyo se ofrece por delante y abierto, creando una línea de pase
+		// progresiva en lugar de quedarse detrás del jugador con balón.
+		Vector3 target = baseFrom + towardHoop * 4.5f + lateral * side * 4.5f;
 		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + 1.0f, CourtHalfWidth - 1.0f);
 		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + 1.0f, CourtHalfLength - 1.0f);
 		target.Y = GlobalPosition.Y;
@@ -698,7 +711,7 @@ public partial class Player : CharacterBody3D
 
 	private Vector3 SupportDefensePosition(Player carrier)
 	{
-		Vector3 ownHoop = TeamId == 0 ? SecondHoopPosition : HoopPosition;
+		Vector3 ownHoop = DefendingHoop();
 		Vector3 threat = carrier != null ? carrier.GlobalPosition : _ball.GlobalPosition;
 		Vector3 target = ownHoop.Lerp(threat, Role == AIRole.Support ? 0.28f : 0.48f);
 		target.X += Role == AIRole.Support ? 4.0f : -3.2f;
@@ -881,6 +894,7 @@ public partial class Player : CharacterBody3D
 		_ball.RecordTouchPlayer(this);
 		_ball.Release(velocity);
 		receiver.StartReceivingPass(target);
+		_aiPassCooldownTimer = AIPassCooldown;
 		return true;
 	}
 
@@ -888,7 +902,7 @@ public partial class Player : CharacterBody3D
 	{
 		Player best = null;
 		float bestScore = float.NegativeInfinity;
-		Vector3 hoop = TargetHoop(GlobalPosition);
+		Vector3 hoop = AttackingHoop();
 		float myHoopDistance = FlatDistance(GlobalPosition, hoop);
 
 		foreach (Player player in AllPlayers)
@@ -934,12 +948,13 @@ public partial class Player : CharacterBody3D
 		if (receiver == null)
 			return false;
 
-		Vector3 hoop = TargetHoop(GlobalPosition);
+		Vector3 hoop = AttackingHoop();
 		float myHoopDistance = FlatDistance(GlobalPosition, hoop);
 		float receiverHoopDistance = FlatDistance(receiver.GlobalPosition, hoop);
-		bool receiverImprovesAttack = receiverHoopDistance + 1.0f < myHoopDistance;
-		bool laneIsClean = PassLaneRisk(PredictPassTarget(receiver)) < 0.8f;
-		return receiverImprovesAttack && laneIsClean;
+		bool receiverImprovesAttack = receiverHoopDistance + AIPassDistanceAdvantage < myHoopDistance;
+		bool receiverIsOpen = PassLaneRisk(PredictPassTarget(receiver)) < AIPassLaneRiskLimit;
+		bool hasHeldLongEnough = _aiCarryTime >= AIPassCarryTime;
+		return hasHeldLongEnough && receiverImprovesAttack && receiverIsOpen;
 	}
 
 	private Vector3 PredictPassTarget(Player receiver)
@@ -1042,7 +1057,7 @@ public partial class Player : CharacterBody3D
 		float cosA = Mathf.Cos(angle);
 		float tanA = Mathf.Tan(angle);
 		float gravity = Mathf.Abs(GetGravity().Y);
-		float deltaHeight = TargetHoop(GlobalPosition).Y - _ball.GlobalPosition.Y;
+		float deltaHeight = AttackingHoop().Y - _ball.GlobalPosition.Y;
 		float dEff = Mathf.Max(distance, 1.5f);
 		float denom = 2.0f * cosA * cosA * (dEff * tanA - deltaHeight);
 		float speed = denom > 0.0001f ? Mathf.Sqrt(gravity * dEff * dEff / denom) : MinKickSpeed;
@@ -1080,13 +1095,13 @@ public partial class Player : CharacterBody3D
 
 	private float DistanceToHoop(Vector3 from)
 	{
-		Vector3 flat = TargetHoop(from) - from;
+		Vector3 flat = AttackingHoop() - from;
 		return new Vector3(flat.X, 0, flat.Z).Length();
 	}
 
 	private Vector3 AimDirectionToHoop()
 	{
-		Vector3 toHoop = TargetHoop(_ball.GlobalPosition) - _ball.GlobalPosition;
+		Vector3 toHoop = AttackingHoop() - _ball.GlobalPosition;
 		toHoop.Y = 0.0f;
 		return toHoop.LengthSquared() > 0.001f ? toHoop.Normalized() : FacingDirection;
 	}
@@ -1102,11 +1117,16 @@ public partial class Player : CharacterBody3D
 		return RotateHorizontal(dir, err);
 	}
 
-	// En juego de equipos cada lado ataca un aro fijo, para que la defensa y
-	// los apoyos tengan una referencia estable.
-	private Vector3 TargetHoop(Vector3 from)
+	// Azul defiende el norte y ataca el sur; Rojo defiende el sur y ataca el
+	// norte. Estas referencias son fijas durante todo el partido.
+	private Vector3 AttackingHoop()
 	{
 		return TeamId == 0 ? HoopPosition : SecondHoopPosition;
+	}
+
+	private Vector3 DefendingHoop()
+	{
+		return TeamId == 0 ? SecondHoopPosition : HoopPosition;
 	}
 
 	// Dispersión del tiro: parado y cerca del aro = precisión; corriendo (y a

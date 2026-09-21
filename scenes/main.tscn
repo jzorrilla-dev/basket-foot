@@ -3,12 +3,11 @@
 [ext_resource type="Script" uid="uid://dihygoxkwxbgg" path="res://scripts/Player.cs" id="1"]
 [ext_resource type="Script" uid="uid://1ucbympsmw2x" path="res://scripts/Ball.cs" id="2"]
 [ext_resource type="Script" uid="uid://yp7hxt01mamo" path="res://scripts/ScoreZone.cs" id="3"]
-[ext_resource type="Script" path="res://scripts/PlayerCamera.cs" id="4"]
-[ext_resource type="Script" path="res://scripts/SemicircleMesh.cs" id="5"]
-[ext_resource type="Script" path="res://scripts/BoundaryDetector.cs" id="6"]
-[ext_resource type="Script" path="res://scripts/RestartUI.cs" id="7"]
-[ext_resource type="Script" path="res://scripts/CourtPainter.cs" id="8"]
-[ext_resource type="Script" path="res://scripts/ScoreboardUI.cs" id="9"]
+[ext_resource type="Script" uid="uid://j2an5b7t1c3r" path="res://scripts/PlayerCamera.cs" id="4"]
+[ext_resource type="Script" uid="uid://nuar5j5vtgyi" path="res://scripts/BoundaryDetector.cs" id="6"]
+[ext_resource type="Script" uid="uid://bpvsa6t1qjqlw" path="res://scripts/RestartUI.cs" id="7"]
+[ext_resource type="Script" uid="uid://cdqxmeeopfaya" path="res://scripts/CourtPainter.cs" id="8"]
+[ext_resource type="Script" uid="uid://q77pj577gglv" path="res://scripts/ScoreboardUI.cs" id="9"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_horizon_color = Color(0.646, 0.656, 0.67, 1)
@@ -24,13 +23,6 @@ sky = SubResource("Sky_1")
 ambient_light_source = 3
 tonemap_mode = 2
 
-[sub_resource type="StandardMaterial3D" id="MatFloor"]
-albedo_color = Color(0.62, 0.44, 0.24, 1)
-roughness = 0.6
-
-[sub_resource type="BoxMesh" id="FloorMesh"]
-size = Vector3(40, 0.2, 20)
-
 [sub_resource type="StandardMaterial3D" id="MatGround"]
 albedo_color = Color(0.28, 0.32, 0.26, 1)
 roughness = 0.95
@@ -40,33 +32,6 @@ size = Vector3(60, 0.4, 60)
 
 [sub_resource type="BoxShape3D" id="GroundShape"]
 size = Vector3(60, 0.4, 60)
-
-[sub_resource type="StandardMaterial3D" id="MatLine"]
-albedo_color = Color(1, 1, 1, 1)
-roughness = 0.5
-
-[sub_resource type="BoxMesh" id="LineMeshLong"]
-size = Vector3(40, 0.02, 0.12)
-
-[sub_resource type="BoxMesh" id="LineMeshShort"]
-size = Vector3(0.12, 0.02, 20)
-
-[sub_resource type="TorusMesh" id="CenterRingMesh"]
-inner_radius = 3.0
-outer_radius = 3.15
-rings = 12
-ring_segments = 64
-
-[sub_resource type="TorusMesh" id="ThreePointRingMesh"]
-inner_radius = 6.68
-outer_radius = 6.82
-rings = 12
-ring_segments = 96
-
-[sub_resource type="StandardMaterial3D" id="MatSmallArea"]
-transparency = 1
-albedo_color = Color(0.9, 0.1, 0.1, 0.35)
-roughness = 0.6
 
 [sub_resource type="StandardMaterial3D" id="MatPost"]
 albedo_color = Color(0.4, 0.4, 0.42, 1)
@@ -124,20 +89,24 @@ radial_segments = 24
 [sub_resource type="SphereShape3D" id="BallShape"]
 radius = 0.15
 
-[sub_resource type="StandardMaterial3D" id="MatPlayer"]
-albedo_color = Color(0.1, 0.35, 0.9, 1)
-roughness = 0.7
-
-[sub_resource type="StandardMaterial3D" id="MatPlayer2"]
-albedo_color = Color(0.85, 0.2, 0.15, 1)
+[sub_resource type="StandardMaterial3D" id="MatSkin"]
+albedo_color = Color(0.85, 0.62, 0.45, 1)
 roughness = 0.7
 
 [sub_resource type="SphereMesh" id="HeadMesh"]
 radius = 0.13
 height = 0.26
 
+[sub_resource type="StandardMaterial3D" id="MatPlayer"]
+albedo_color = Color(0.1, 0.35, 0.9, 1)
+roughness = 0.7
+
 [sub_resource type="BoxMesh" id="TorsoMesh"]
 size = Vector3(0.36, 0.45, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="MatShorts"]
+albedo_color = Color(0.06, 0.08, 0.18, 1)
+roughness = 0.8
 
 [sub_resource type="BoxMesh" id="ShortsMesh"]
 size = Vector3(0.34, 0.22, 0.2)
@@ -154,6 +123,10 @@ height = 0.4
 radius = 0.06
 height = 0.4
 
+[sub_resource type="StandardMaterial3D" id="MatBoots"]
+albedo_color = Color(0.08, 0.07, 0.07, 1)
+roughness = 0.6
+
 [sub_resource type="BoxMesh" id="BootMesh"]
 size = Vector3(0.11, 0.09, 0.28)
 
@@ -161,16 +134,15 @@ size = Vector3(0.11, 0.09, 0.28)
 radius = 0.4
 height = 1.8
 
+[sub_resource type="StandardMaterial3D" id="MatPlayer2"]
+albedo_color = Color(0.85, 0.2, 0.15, 1)
+roughness = 0.7
+
 [sub_resource type="BoxShape3D" id="LateralShape"]
 size = Vector3(0.5, 4, 20)
 
 [sub_resource type="BoxShape3D" id="GoalLineShape"]
 size = Vector3(20, 4, 0.5)
-
-[sub_resource type="LabelSettings" id="RestartLabelStyle"]
-font_size = 28
-outline_size = 8
-outline_color = Color(0, 0, 0, 1)
 
 [sub_resource type="LabelSettings" id="ScoreLabelStyle"]
 font_size = 30
@@ -182,17 +154,10 @@ font_size = 44
 outline_size = 10
 outline_color = Color(0, 0, 0, 1)
 
-[sub_resource type="StandardMaterial3D" id="MatSkin"]
-albedo_color = Color(0.85, 0.62, 0.45, 1)
-roughness = 0.7
-
-[sub_resource type="StandardMaterial3D" id="MatShorts"]
-albedo_color = Color(0.06, 0.08, 0.18, 1)
-roughness = 0.8
-
-[sub_resource type="StandardMaterial3D" id="MatBoots"]
-albedo_color = Color(0.08, 0.07, 0.07, 1)
-roughness = 0.6
+[sub_resource type="LabelSettings" id="RestartLabelStyle"]
+font_size = 28
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
 
 [node name="Main" type="Node3D" unique_id=2004728431]
 
@@ -279,87 +244,87 @@ shape = SubResource("RimShape")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, -20.3253)
 shape = SubResource("RimShape")
 
-[node name="ScoreZone" type="Area3D" parent="Basket" groups=["score_zones"] unique_id=626165494]
+[node name="ScoreZone" type="Area3D" parent="Basket" unique_id=626165494 groups=["score_zones"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -20)
 script = ExtResource("3")
 BallPath = NodePath("../../Ball")
+ScoringTeamId = 0
 
 [node name="ScoreZoneShape" type="CollisionShape3D" parent="Basket/ScoreZone" unique_id=1165222186]
 shape = SubResource("ScoreZoneShape")
 
-[node name="Basket2" type="StaticBody3D" parent="."]
+[node name="Basket2" type="StaticBody3D" parent="." unique_id=749240388]
 
-[node name="Post" type="MeshInstance3D" parent="Basket2"]
+[node name="Post" type="MeshInstance3D" parent="Basket2" unique_id=512697734]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 20.75)
 material_override = SubResource("MatPost")
 mesh = SubResource("PostMesh")
 
-[node name="PostCollision" type="CollisionShape3D" parent="Basket2"]
+[node name="PostCollision" type="CollisionShape3D" parent="Basket2" unique_id=1075139427]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 20.75)
 shape = SubResource("PostShape")
 
-[node name="Backboard" type="MeshInstance3D" parent="Basket2"]
+[node name="Backboard" type="MeshInstance3D" parent="Basket2" unique_id=1510375134]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 20.25)
 material_override = SubResource("MatBackboard")
 mesh = SubResource("BackboardMesh")
 
-[node name="BackboardCollision" type="CollisionShape3D" parent="Basket2"]
+[node name="BackboardCollision" type="CollisionShape3D" parent="Basket2" unique_id=742309890]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 20.25)
 shape = SubResource("BackboardShape")
 
-[node name="Rim" type="MeshInstance3D" parent="Basket2"]
+[node name="Rim" type="MeshInstance3D" parent="Basket2" unique_id=1023772549]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 20)
 material_override = SubResource("MatRim")
 mesh = SubResource("RimMesh")
 
-[node name="RimCollision0" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision0" type="CollisionShape3D" parent="Basket2" unique_id=147193145]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.46, 3, 20)
 shape = SubResource("RimShape")
 
-[node name="RimCollision1" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision1" type="CollisionShape3D" parent="Basket2" unique_id=1840877306]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, 19.6747)
 shape = SubResource("RimShape")
 
-[node name="RimCollision2" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision2" type="CollisionShape3D" parent="Basket2" unique_id=1336813565]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 19.54)
 shape = SubResource("RimShape")
 
-[node name="RimCollision3" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision3" type="CollisionShape3D" parent="Basket2" unique_id=1803474082]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, 19.6747)
 shape = SubResource("RimShape")
 
-[node name="RimCollision4" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision4" type="CollisionShape3D" parent="Basket2" unique_id=424853630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.46, 3, 20)
 shape = SubResource("RimShape")
 
-[node name="RimCollision5" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision5" type="CollisionShape3D" parent="Basket2" unique_id=1060340661]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3253, 3, 20.3253)
 shape = SubResource("RimShape")
 
-[node name="RimCollision6" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision6" type="CollisionShape3D" parent="Basket2" unique_id=1574857816]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 20.46)
 shape = SubResource("RimShape")
 
-[node name="RimCollision7" type="CollisionShape3D" parent="Basket2"]
+[node name="RimCollision7" type="CollisionShape3D" parent="Basket2" unique_id=558301063]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3253, 3, 20.3253)
 shape = SubResource("RimShape")
 
-[node name="ScoreZone" type="Area3D" parent="Basket2" groups=["score_zones"]]
+[node name="ScoreZone" type="Area3D" parent="Basket2" unique_id=391246283 groups=["score_zones"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 20)
 script = ExtResource("3")
 BallPath = NodePath("../../Ball")
+ScoringTeamId = 1
 
-[node name="ScoreZoneShape" type="CollisionShape3D" parent="Basket2/ScoreZone"]
+[node name="ScoreZoneShape" type="CollisionShape3D" parent="Basket2/ScoreZone" unique_id=1127475813]
 shape = SubResource("ScoreZoneShape")
 
 [node name="Ball" type="RigidBody3D" parent="." unique_id=2011106119]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 mass = 0.4
-linear_damp_mode = 1
-linear_damp = 0.0
-angular_damp_mode = 1
-angular_damp = 0.0
 physics_material_override = SubResource("BallPhysics")
+linear_damp_mode = 1
+angular_damp_mode = 1
 script = ExtResource("2")
 
 [node name="BallMesh" type="MeshInstance3D" parent="Ball" unique_id=1066513318]
@@ -375,67 +340,66 @@ script = ExtResource("1")
 BallPath = NodePath("../Ball")
 VisualPath = NodePath("Visual")
 RespawnPosition = Vector3(-2.2, 1, 5)
-TeamId = 0
 
 [node name="Visual" type="Node3D" parent="Player" unique_id=980591024]
 
-[node name="Head" type="MeshInstance3D" parent="Player/Visual"]
+[node name="Head" type="MeshInstance3D" parent="Player/Visual" unique_id=376596976]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("HeadMesh")
 
-[node name="Torso" type="MeshInstance3D" parent="Player/Visual"]
+[node name="Torso" type="MeshInstance3D" parent="Player/Visual" unique_id=1159119803]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
 material_override = SubResource("MatPlayer")
 mesh = SubResource("TorsoMesh")
 
-[node name="Shorts" type="MeshInstance3D" parent="Player/Visual"]
+[node name="Shorts" type="MeshInstance3D" parent="Player/Visual" unique_id=1197079774]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
 material_override = SubResource("MatShorts")
 mesh = SubResource("ShortsMesh")
 
-[node name="ArmLeft" type="MeshInstance3D" parent="Player/Visual"]
+[node name="ArmLeft" type="MeshInstance3D" parent="Player/Visual" unique_id=720865338]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="ArmRight" type="MeshInstance3D" parent="Player/Visual"]
+[node name="ArmRight" type="MeshInstance3D" parent="Player/Visual" unique_id=740485772]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="LegPivotLeft" type="Node3D" parent="Player/Visual"]
+[node name="LegPivotLeft" type="Node3D" parent="Player/Visual" unique_id=1215703437]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
 
-[node name="UpperLegLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft"]
+[node name="UpperLegLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft" unique_id=1477654221]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft"]
+[node name="LowerLegLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft" unique_id=1523694909]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft"]
+[node name="BootLeft" type="MeshInstance3D" parent="Player/Visual/LegPivotLeft" unique_id=1594651577]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
-[node name="LegPivotRight" type="Node3D" parent="Player/Visual"]
+[node name="LegPivotRight" type="Node3D" parent="Player/Visual" unique_id=2123128342]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
 
-[node name="UpperLegRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight"]
+[node name="UpperLegRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight" unique_id=255997858]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight"]
+[node name="LowerLegRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight" unique_id=536734865]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight"]
+[node name="BootRight" type="MeshInstance3D" parent="Player/Visual/LegPivotRight" unique_id=1551460497]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
@@ -443,83 +407,82 @@ mesh = SubResource("BootMesh")
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player" unique_id=193557354]
 shape = SubResource("PlayerShape")
 
-[node name="PlayerBlueAI" type="CharacterBody3D" parent="."]
+[node name="PlayerBlueAI" type="CharacterBody3D" parent="." unique_id=1050904718]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 1, 5)
 script = ExtResource("1")
 BallPath = NodePath("../Ball")
 VisualPath = NodePath("Visual")
 RespawnPosition = Vector3(2.2, 1, 5)
-TeamId = 0
 IsAI = true
 Role = 1
 
-[node name="Visual" type="Node3D" parent="PlayerBlueAI"]
+[node name="Visual" type="Node3D" parent="PlayerBlueAI" unique_id=959944740]
 
-[node name="Head" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+[node name="Head" type="MeshInstance3D" parent="PlayerBlueAI/Visual" unique_id=1813549482]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("HeadMesh")
 
-[node name="Torso" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+[node name="Torso" type="MeshInstance3D" parent="PlayerBlueAI/Visual" unique_id=862338711]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
 material_override = SubResource("MatPlayer")
 mesh = SubResource("TorsoMesh")
 
-[node name="Shorts" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+[node name="Shorts" type="MeshInstance3D" parent="PlayerBlueAI/Visual" unique_id=120215172]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
 material_override = SubResource("MatShorts")
 mesh = SubResource("ShortsMesh")
 
-[node name="ArmLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+[node name="ArmLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual" unique_id=1572577725]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="ArmRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual"]
+[node name="ArmRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual" unique_id=595293560]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="LegPivotLeft" type="Node3D" parent="PlayerBlueAI/Visual"]
+[node name="LegPivotLeft" type="Node3D" parent="PlayerBlueAI/Visual" unique_id=825881730]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
 
-[node name="UpperLegLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft"]
+[node name="UpperLegLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft" unique_id=772317267]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft"]
+[node name="LowerLegLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft" unique_id=628245510]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft"]
+[node name="BootLeft" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotLeft" unique_id=413635671]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
-[node name="LegPivotRight" type="Node3D" parent="PlayerBlueAI/Visual"]
+[node name="LegPivotRight" type="Node3D" parent="PlayerBlueAI/Visual" unique_id=1580147405]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
 
-[node name="UpperLegRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight"]
+[node name="UpperLegRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight" unique_id=1098294868]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight"]
+[node name="LowerLegRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight" unique_id=1236840688]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight"]
+[node name="BootRight" type="MeshInstance3D" parent="PlayerBlueAI/Visual/LegPivotRight" unique_id=1871237630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
-[node name="PlayerCollision" type="CollisionShape3D" parent="PlayerBlueAI"]
+[node name="PlayerCollision" type="CollisionShape3D" parent="PlayerBlueAI" unique_id=2118259231]
 shape = SubResource("PlayerShape")
 
-[node name="Player2" type="CharacterBody3D" parent="."]
+[node name="Player2" type="CharacterBody3D" parent="." unique_id=594752823]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 1, -5)
 script = ExtResource("1")
 BallPath = NodePath("../Ball")
@@ -528,73 +491,73 @@ RespawnPosition = Vector3(-2.2, 1, -5)
 TeamId = 1
 IsAI = true
 
-[node name="Visual" type="Node3D" parent="Player2"]
+[node name="Visual" type="Node3D" parent="Player2" unique_id=448024598]
 
-[node name="Head" type="MeshInstance3D" parent="Player2/Visual"]
+[node name="Head" type="MeshInstance3D" parent="Player2/Visual" unique_id=379750110]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("HeadMesh")
 
-[node name="Torso" type="MeshInstance3D" parent="Player2/Visual"]
+[node name="Torso" type="MeshInstance3D" parent="Player2/Visual" unique_id=614546462]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
 material_override = SubResource("MatPlayer2")
 mesh = SubResource("TorsoMesh")
 
-[node name="Shorts" type="MeshInstance3D" parent="Player2/Visual"]
+[node name="Shorts" type="MeshInstance3D" parent="Player2/Visual" unique_id=2098668896]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
 material_override = SubResource("MatShorts")
 mesh = SubResource("ShortsMesh")
 
-[node name="ArmLeft" type="MeshInstance3D" parent="Player2/Visual"]
+[node name="ArmLeft" type="MeshInstance3D" parent="Player2/Visual" unique_id=1396697924]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="ArmRight" type="MeshInstance3D" parent="Player2/Visual"]
+[node name="ArmRight" type="MeshInstance3D" parent="Player2/Visual" unique_id=1195255045]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="LegPivotLeft" type="Node3D" parent="Player2/Visual"]
+[node name="LegPivotLeft" type="Node3D" parent="Player2/Visual" unique_id=2138354459]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
 
-[node name="UpperLegLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft"]
+[node name="UpperLegLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft" unique_id=1705972542]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft"]
+[node name="LowerLegLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft" unique_id=130770538]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft"]
+[node name="BootLeft" type="MeshInstance3D" parent="Player2/Visual/LegPivotLeft" unique_id=297651826]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
-[node name="LegPivotRight" type="Node3D" parent="Player2/Visual"]
+[node name="LegPivotRight" type="Node3D" parent="Player2/Visual" unique_id=1679748951]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
 
-[node name="UpperLegRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight"]
+[node name="UpperLegRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight" unique_id=1172840036]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight"]
+[node name="LowerLegRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight" unique_id=1836163913]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight"]
+[node name="BootRight" type="MeshInstance3D" parent="Player2/Visual/LegPivotRight" unique_id=1030040564]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
-[node name="PlayerCollision" type="CollisionShape3D" parent="Player2"]
+[node name="PlayerCollision" type="CollisionShape3D" parent="Player2" unique_id=896273817]
 shape = SubResource("PlayerShape")
 
-[node name="PlayerRedAI2" type="CharacterBody3D" parent="."]
+[node name="PlayerRedAI2" type="CharacterBody3D" parent="." unique_id=1027032755]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 1, -5)
 script = ExtResource("1")
 BallPath = NodePath("../Ball")
@@ -604,148 +567,142 @@ TeamId = 1
 IsAI = true
 Role = 1
 
-[node name="Visual" type="Node3D" parent="PlayerRedAI2"]
+[node name="Visual" type="Node3D" parent="PlayerRedAI2" unique_id=1164901728]
 
-[node name="Head" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+[node name="Head" type="MeshInstance3D" parent="PlayerRedAI2/Visual" unique_id=690991108]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("HeadMesh")
 
-[node name="Torso" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+[node name="Torso" type="MeshInstance3D" parent="PlayerRedAI2/Visual" unique_id=122768816]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.395, 0)
 material_override = SubResource("MatPlayer2")
 mesh = SubResource("TorsoMesh")
 
-[node name="Shorts" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+[node name="Shorts" type="MeshInstance3D" parent="PlayerRedAI2/Visual" unique_id=119596461]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
 material_override = SubResource("MatShorts")
 mesh = SubResource("ShortsMesh")
 
-[node name="ArmLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+[node name="ArmLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual" unique_id=1816963644]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="ArmRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual"]
+[node name="ArmRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual" unique_id=89114513]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0.33, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("ArmMesh")
 
-[node name="LegPivotLeft" type="Node3D" parent="PlayerRedAI2/Visual"]
+[node name="LegPivotLeft" type="Node3D" parent="PlayerRedAI2/Visual" unique_id=264960553]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.05, 0)
 
-[node name="UpperLegLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft"]
+[node name="UpperLegLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft" unique_id=2023867655]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft"]
+[node name="LowerLegLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft" unique_id=1814531251]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft"]
+[node name="BootLeft" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotLeft" unique_id=965188454]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
-[node name="LegPivotRight" type="Node3D" parent="PlayerRedAI2/Visual"]
+[node name="LegPivotRight" type="Node3D" parent="PlayerRedAI2/Visual" unique_id=1351475582]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, -0.05, 0)
 
-[node name="UpperLegRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight"]
+[node name="UpperLegRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight" unique_id=987693419]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("UpperLegMesh")
 
-[node name="LowerLegRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight"]
+[node name="LowerLegRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight" unique_id=1442223162]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.56, 0)
 material_override = SubResource("MatSkin")
 mesh = SubResource("LowerLegMesh")
 
-[node name="BootRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight"]
+[node name="BootRight" type="MeshInstance3D" parent="PlayerRedAI2/Visual/LegPivotRight" unique_id=1038869928]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.805, -0.1)
 material_override = SubResource("MatBoots")
 mesh = SubResource("BootMesh")
 
-[node name="PlayerCollision" type="CollisionShape3D" parent="PlayerRedAI2"]
+[node name="PlayerCollision" type="CollisionShape3D" parent="PlayerRedAI2" unique_id=677248029]
 shape = SubResource("PlayerShape")
 
-[node name="BoundaryDetector" type="Node3D" parent="."]
+[node name="BoundaryDetector" type="Node3D" parent="." unique_id=42838118]
 script = ExtResource("6")
 BallPath = NodePath("../Ball")
 Player1Path = NodePath("../Player")
 Player2Path = NodePath("../Player2")
 
-[node name="LateralLeft" type="Area3D" parent="BoundaryDetector"]
-monitoring = true
+[node name="LateralLeft" type="Area3D" parent="BoundaryDetector" unique_id=1448032541]
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/LateralLeft"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/LateralLeft" unique_id=1155729073]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 1, 0)
 shape = SubResource("LateralShape")
 
-[node name="LateralRight" type="Area3D" parent="BoundaryDetector"]
-monitoring = true
+[node name="LateralRight" type="Area3D" parent="BoundaryDetector" unique_id=517316459]
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/LateralRight"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/LateralRight" unique_id=592089608]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 1, 0)
 shape = SubResource("LateralShape")
 
-[node name="GoalLineSouth" type="Area3D" parent="BoundaryDetector"]
-monitoring = true
+[node name="GoalLineSouth" type="Area3D" parent="BoundaryDetector" unique_id=894845274]
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/GoalLineSouth"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/GoalLineSouth" unique_id=1681759866]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -20.5)
 shape = SubResource("GoalLineShape")
 
-[node name="GoalLineNorth" type="Area3D" parent="BoundaryDetector"]
-monitoring = true
+[node name="GoalLineNorth" type="Area3D" parent="BoundaryDetector" unique_id=1632176798]
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/GoalLineNorth"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoundaryDetector/GoalLineNorth" unique_id=1895301593]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 20.5)
 shape = SubResource("GoalLineShape")
 
-[node name="ScoreboardUI" type="CanvasLayer" parent="."]
+[node name="ScoreboardUI" type="CanvasLayer" parent="." unique_id=1130410795]
 script = ExtResource("9")
 
-[node name="ScoreLabel" type="Label" parent="ScoreboardUI"]
+[node name="ScoreLabel" type="Label" parent="ScoreboardUI" unique_id=258891437]
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 180.0
 offset_top = 14.0
 offset_right = -180.0
 offset_bottom = 62.0
+text = "AZUL 0  -  0 ROJO"
+label_settings = SubResource("ScoreLabelStyle")
 horizontal_alignment = 1
 vertical_alignment = 1
-label_settings = SubResource("ScoreLabelStyle")
-text = "AZUL 0  -  0 ROJO"
 
-[node name="LastScoreLabel" type="Label" parent="ScoreboardUI"]
+[node name="LastScoreLabel" type="Label" parent="ScoreboardUI" unique_id=1826016094]
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 260.0
 offset_top = 68.0
 offset_right = -260.0
 offset_bottom = 132.0
+label_settings = SubResource("LastScoreLabelStyle")
 horizontal_alignment = 1
 vertical_alignment = 1
-label_settings = SubResource("LastScoreLabelStyle")
-text = ""
 
-[node name="RestartUI" type="CanvasLayer" parent="."]
+[node name="RestartUI" type="CanvasLayer" parent="." unique_id=1091898790]
 script = ExtResource("7")
 
-[node name="RestartLabel" type="Label" parent="RestartUI"]
+[node name="RestartLabel" type="Label" parent="RestartUI" unique_id=246615684]
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 200.0
 offset_top = 138.0
 offset_right = -200.0
 offset_bottom = 188.0
+label_settings = SubResource("RestartLabelStyle")
 horizontal_alignment = 1
 vertical_alignment = 1
-label_settings = SubResource("RestartLabelStyle")
-text = ""

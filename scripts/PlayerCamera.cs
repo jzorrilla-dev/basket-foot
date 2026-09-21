@@ -33,7 +33,7 @@ public partial class PlayerCamera : Camera3D
 		}
 
 		// La cámara se sitúa detrás del jugador, en la dirección opuesta a su
-		// mirada (el frente del jugador apunta al aro más cercano).
+		// mirada (el frente del jugador puede orientarse hacia el aro rival).
 		Vector3 facing = _player.FacingDirection;
 		Vector3 idealPos = _player.GlobalPosition - facing * DistanceBehind + Vector3.Up * Height;
 		GlobalPosition = GlobalPosition.Lerp(idealPos, 1.0f - Mathf.Exp(-FollowResponse * (float)delta));

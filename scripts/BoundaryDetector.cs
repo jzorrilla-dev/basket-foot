@@ -22,6 +22,8 @@ public partial class BoundaryDetector : Node3D
 	private BoundarySide _pendingSide;
 	private Vector3 _pendingExitPosition;
 	private Player _restartPlayer;
+	private int _pendingRestartTeamId;
+	private bool _pendingCorner;
 	private float _cooldownTimer;
 
 	public override void _Ready()
@@ -61,7 +63,9 @@ public partial class BoundaryDetector : Node3D
 		_pendingExitPosition = _ball.GlobalPosition;
 
 		Vector3 restartPosition = RestartPositionForSide(side, _pendingExitPosition);
-		_restartPlayer = DetermineRestartPlayer(restartPosition);
+		_pendingRestartTeamId = DetermineRestartTeam(side);
+		_pendingCorner = IsCornerRestart(side);
+		_restartPlayer = DetermineRestartPlayer(restartPosition, _pendingRestartTeamId);
 	}
 
 	private void ExecuteRestart()
@@ -73,8 +77,8 @@ public partial class BoundaryDetector : Node3D
 		_ball.FreezeForRestart();
 
 		Vector3 restartPosition = RestartPositionForSide(_pendingSide, _pendingExitPosition);
-		Vector3 target = RestartTargetForSide(_pendingSide, restartPosition, _restartPlayer.TeamId);
 		bool lateral = _pendingSide == BoundarySide.LateralLeft || _pendingSide == BoundarySide.LateralRight;
+		Vector3 target = RestartTargetForSide(_pendingSide, restartPosition, _restartPlayer.TeamId);
 		if (lateral)
 		{
 			_restartPlayer.PrepareThrowInRestart(restartPosition, target);
@@ -84,18 +88,42 @@ public partial class BoundaryDetector : Node3D
 			_restartPlayer.PrepareKickInRestart(restartPosition, target);
 		}
 
-		string type = lateral ? "Saque lateral" : "Saque de fondo";
+		string type = lateral ? "Saque lateral" : (_pendingCorner ? "Córner" : "Saque de arco");
 		string playerName = Player.TeamName(_restartPlayer.TeamId);
 		EmitSignal(SignalName.RestartTriggered, type, playerName);
 	}
 
-	private Player DetermineRestartPlayer(Vector3 restartPosition)
+	private int DetermineRestartTeam(BoundarySide side)
 	{
-		int restartTeamId = 0;
-		if (_ball.LastTouchPlayer is Player lastTouch)
+		if (side == BoundarySide.LateralLeft || side == BoundarySide.LateralRight)
 		{
-			restartTeamId = lastTouch.TeamId == 0 ? 1 : 0;
+			return OpposingTeam(LastTouchTeamId());
 		}
+
+		int defendingTeamId = side == BoundarySide.GoalLineSouth ? 0 : 1;
+		// Si el defensor desvió el balón fuera durante un ataque rival, es córner
+		// para el atacante. Si el atacante fue el último, es saque de arco.
+		return OpposingTeam(LastTouchTeamId(defendingTeamId));
+	}
+
+	private bool IsCornerRestart(BoundarySide side)
+	{
+		if (side == BoundarySide.LateralLeft || side == BoundarySide.LateralRight)
+			return false;
+
+		int defendingTeamId = side == BoundarySide.GoalLineSouth ? 0 : 1;
+		return LastTouchTeamId(defendingTeamId) == defendingTeamId;
+	}
+
+	private int LastTouchTeamId(int fallback = 0)
+	{
+		return _ball.LastTouchPlayer is Player lastTouch ? lastTouch.TeamId : fallback;
+	}
+
+	private static int OpposingTeam(int teamId) => teamId == 0 ? 1 : 0;
+
+	private Player DetermineRestartPlayer(Vector3 restartPosition, int restartTeamId)
+	{
 
 		Player closest = null;
 		float bestDistanceSq = float.PositiveInfinity;
@@ -112,7 +140,16 @@ public partial class BoundaryDetector : Node3D
 			}
 		}
 
-		return closest ?? GetNode<Player>(Player1Path);
+		if (closest != null)
+			return closest;
+
+		foreach (Player player in Player.Players)
+		{
+			if (IsInstanceValid(player) && player.TeamId == restartTeamId)
+				return player;
+		}
+
+		return GetNode<Player>(Player1Path);
 	}
 
 	private Vector3 RestartPositionForSide(BoundarySide side, Vector3 exitPosition)
@@ -125,9 +162,17 @@ public partial class BoundaryDetector : Node3D
 		else if (side == BoundarySide.LateralRight)
 			x = CourtHalfWidth - RestartInset;
 		else if (side == BoundarySide.GoalLineSouth)
+		{
 			z = -CourtHalfLength + RestartInset;
+			if (_pendingCorner)
+				x = exitPosition.X < 0.0f ? -CourtHalfWidth + RestartInset : CourtHalfWidth - RestartInset;
+		}
 		else if (side == BoundarySide.GoalLineNorth)
+		{
 			z = CourtHalfLength - RestartInset;
+			if (_pendingCorner)
+				x = exitPosition.X < 0.0f ? -CourtHalfWidth + RestartInset : CourtHalfWidth - RestartInset;
+		}
 
 		return new Vector3(x, 1.0f, z);
 	}
@@ -148,13 +193,40 @@ public partial class BoundaryDetector : Node3D
 		}
 		else
 		{
-			target.Z = side == BoundarySide.GoalLineSouth ? CourtHalfLength : -CourtHalfLength;
-			target.X = 0.0f;
+			Player receiver = FindRestartReceiver(restartPosition, restartTeamId);
+			if (receiver != null)
+			{
+				target = receiver.GlobalPosition;
+			}
+			else
+			{
+				target.Z = side == BoundarySide.GoalLineSouth ? -CourtHalfLength + 5.0f : CourtHalfLength - 5.0f;
+				target.X = 0.0f;
+			}
 		}
 
 		target.X = Mathf.Clamp(target.X, -CourtHalfWidth + RestartInset, CourtHalfWidth - RestartInset);
 		target.Z = Mathf.Clamp(target.Z, -CourtHalfLength + RestartInset, CourtHalfLength - RestartInset);
 		target.Y = 0.3f;
 		return target;
+	}
+
+	private Player FindRestartReceiver(Vector3 restartPosition, int restartTeamId)
+	{
+		Player receiver = null;
+		float bestDistanceSq = float.PositiveInfinity;
+		foreach (Player player in Player.Players)
+		{
+			if (!IsInstanceValid(player) || player.TeamId != restartTeamId || player == _restartPlayer)
+				continue;
+
+			float distanceSq = player.GlobalPosition.DistanceSquaredTo(restartPosition);
+			if (distanceSq < bestDistanceSq)
+			{
+				bestDistanceSq = distanceSq;
+				receiver = player;
+			}
+		}
+		return receiver;
 	}
 }
