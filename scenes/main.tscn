@@ -8,6 +8,9 @@
 [ext_resource type="Script" uid="uid://bpvsa6t1qjqlw" path="res://scripts/RestartUI.cs" id="7"]
 [ext_resource type="Script" uid="uid://cdqxmeeopfaya" path="res://scripts/CourtPainter.cs" id="8"]
 [ext_resource type="Script" uid="uid://q77pj577gglv" path="res://scripts/ScoreboardUI.cs" id="9"]
+[ext_resource type="Script" path="res://scripts/MatchManager.cs" id="10"]
+[ext_resource type="Script" path="res://scripts/AudioManager.cs" id="11"]
+[ext_resource type="Script" path="res://scripts/PauseMenu.cs" id="12"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_horizon_color = Color(0.646, 0.656, 0.67, 1)
@@ -160,6 +163,20 @@ outline_size = 8
 outline_color = Color(0, 0, 0, 1)
 
 [node name="Main" type="Node3D" unique_id=2004728431]
+
+[node name="MatchManager" type="Node" parent="." unique_id=2004728440]
+script = ExtResource("10")
+BallPath = NodePath("../Ball")
+PlayerPath = NodePath("../Player")
+Player2Path = NodePath("../Player2")
+PlayerBlueAIPath = NodePath("../PlayerBlueAI")
+
+[node name="AudioManager" type="Node" parent="." unique_id=2004728441]
+script = ExtResource("11")
+
+[node name="PauseMenu" type="CanvasLayer" parent="." unique_id=2004728442]
+process_mode = 3
+script = ExtResource("12")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1383332910]
 environment = SubResource("Environment_1")
@@ -690,6 +707,17 @@ offset_top = 68.0
 offset_right = -260.0
 offset_bottom = 132.0
 label_settings = SubResource("LastScoreLabelStyle")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MatchStateLabel" type="Label" parent="ScoreboardUI" unique_id=1826016095]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 300.0
+offset_top = 68.0
+offset_right = -300.0
+offset_bottom = 96.0
+text = "1.er TIEMPO"
 horizontal_alignment = 1
 vertical_alignment = 1
 

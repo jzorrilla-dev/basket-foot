@@ -9,11 +9,15 @@ public partial class ScoreboardUI : CanvasLayer
 	private int _blueScore;
 	private int _redScore;
 	private float _flashTimer;
+	private MatchManager _match;
+	private Label _matchStateLabel;
 
 	public override void _Ready()
 	{
 		_scoreLabel = GetNode<Label>("ScoreLabel");
 		_lastScoreLabel = GetNode<Label>("LastScoreLabel");
+		_match = GetNodeOrNull<MatchManager>("../MatchManager");
+		_matchStateLabel = GetNodeOrNull<Label>("MatchStateLabel");
 		_lastScoreLabel.Visible = false;
 		UpdateScoreLabel();
 
@@ -28,6 +32,14 @@ public partial class ScoreboardUI : CanvasLayer
 
 	public override void _Process(double delta)
 	{
+		if (_match != null)
+		{
+			int seconds = Mathf.CeilToInt(_match.TimeRemaining);
+			int minutes = seconds / 60;
+			_scoreLabel.Text = $"AZUL {_blueScore}  -  {_redScore} ROJO    {minutes:00}:{seconds % 60:00}";
+			if (_matchStateLabel != null)
+				_matchStateLabel.Text = _match.PhaseLabel;
+		}
 		if (!_lastScoreLabel.Visible)
 			return;
 

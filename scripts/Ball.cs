@@ -15,11 +15,17 @@ public partial class Ball : RigidBody3D
 	public bool IsCarried => Carrier != null;
 	public Vector3 CarryDirection => _carryDirection;
 	public bool IsFrozenForRestart { get; private set; }
+	public bool IsBoundaryRestartPending { get; private set; }
 	public Node3D LastTouchPlayer { get; private set; }
+	public bool RestartPassProtected => _restartProtectionTimer > 0.0f;
+	public int RestartProtectionTeamId => _restartProtectionTeamId;
 
 	private CollisionShape3D _collision;
 	private Vector3 _carryDirection = Vector3.Forward;
 	private bool _smoothNextGrab;
+	private float _restartProtectionTimer;
+	private int _restartProtectionTeamId = -1;
+	private Player _restartPasser;
 
 	public override void _Ready()
 	{
@@ -28,6 +34,9 @@ public partial class Ball : RigidBody3D
 
 	public override void _PhysicsProcess(double delta)
 	{
+		if (_restartProtectionTimer > 0.0f)
+			_restartProtectionTimer = Mathf.Max(0.0f, _restartProtectionTimer - (float)delta);
+
 		if (IsCarried)
 		{
 			FollowCarrier();
@@ -37,7 +46,7 @@ public partial class Ball : RigidBody3D
 		if (IsFrozenForRestart)
 			return;
 
-		if (GlobalPosition.Y < ResetBelow)
+		if (GlobalPosition.Y < ResetBelow && !IsBoundaryRestartPending)
 		{
 			LinearVelocity = Vector3.Zero;
 			AngularVelocity = Vector3.Zero;
@@ -45,6 +54,7 @@ public partial class Ball : RigidBody3D
 			HasContact = false;
 			ScoredFlag = false;
 			LastTouchPlayer = null;
+			ClearRestartProtection();
 		}
 	}
 
@@ -63,10 +73,35 @@ public partial class Ball : RigidBody3D
 	public void RecordTouchPlayer(Node3D player)
 	{
 		LastTouchPlayer = player;
+		if (_restartProtectionTimer > 0.0f && player is Player teammate
+			&& teammate.TeamId == _restartProtectionTeamId && teammate != _restartPasser)
+		{
+			ClearRestartProtection();
+		}
+	}
+
+	public bool IsRestartProtectedFrom(Player player)
+	{
+		return _restartProtectionTimer > 0.0f && player.TeamId != _restartProtectionTeamId;
+	}
+
+	public void BeginRestartPassProtection(int teamId, Player passer, float duration = 2.5f)
+	{
+		_restartProtectionTeamId = teamId;
+		_restartPasser = passer;
+		_restartProtectionTimer = duration;
+	}
+
+	public void ClearRestartProtection()
+	{
+		_restartProtectionTimer = 0.0f;
+		_restartProtectionTeamId = -1;
+		_restartPasser = null;
 	}
 
 	public void FreezeForRestart()
 	{
+		IsBoundaryRestartPending = false;
 		Freeze = true;
 		LinearVelocity = Vector3.Zero;
 		AngularVelocity = Vector3.Zero;
@@ -76,10 +111,20 @@ public partial class Ball : RigidBody3D
 
 	public void ResumeAfterRestart()
 	{
+		IsBoundaryRestartPending = false;
 		IsFrozenForRestart = false;
 		Freeze = false;
 		_collision.Disabled = false;
 		AngularVelocity = Vector3.Zero;
+		ClearRestartProtection();
+	}
+
+	public void BeginBoundaryRestartPending()
+	{
+		// El balón debe seguir teniendo física durante la pausa previa al saque.
+		// Solo se bloquea el respawn de seguridad para que no vuelva al centro
+		// mientras termina su trayectoria fuera del perímetro.
+		IsBoundaryRestartPending = true;
 	}
 
 	public void Grab(Node3D carrier, bool smoothFollow = false)

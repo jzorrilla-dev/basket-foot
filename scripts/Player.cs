@@ -109,6 +109,7 @@ public partial class Player : CharacterBody3D
 	private float _receiveTimer;
 	private Vector3 _receiveTarget;
 	private float _aiStealWindupTimer;
+	private float _footstepTimer;
 
 	public Vector3 FacingDirection => new(Mathf.Sin(_facingAngle), 0, -Mathf.Cos(_facingAngle));
 	public float KickCharge => _kickCharge;
@@ -167,6 +168,15 @@ public partial class Player : CharacterBody3D
 		}
 	}
 
+	public void PreparePostScoreRestart(Vector3 position, Vector3 target)
+	{
+		PrepareSetPieceRestart(position, target);
+		_ball.RecordContact(GlobalPosition);
+		_ball.RecordTouchPlayer(this);
+		_ball.BeginRestartPassProtection(TeamId, this);
+		_ball.Grab(this);
+	}
+
 	public void PrepareThrowInRestart(Vector3 position, Vector3 target)
 	{
 		PrepareSetPieceRestart(position, target);
@@ -176,6 +186,18 @@ public partial class Player : CharacterBody3D
 		_ball.RecordTouchPlayer(this);
 		_ball.Release(LaunchVelocity(releasePosition, target, 7.8f, 2.7f));
 		_kickCooldown = KickGrabCooldown;
+	}
+
+	public void ResetMatchState()
+	{
+		_charging = false;
+		_kickCharge = 0.0f;
+		_aiCarryTime = 0.0f;
+		_canVolley = false;
+		_kickCooldown = KickGrabCooldown;
+		_ballControlLockout = 0.0f;
+		if (_ball != null && _ball.Carrier == this)
+			_ball.Release(Vector3.Zero);
 	}
 
 	public void PrepareKickInRestart(Vector3 position, Vector3 target)
@@ -217,6 +239,8 @@ public partial class Player : CharacterBody3D
 
 	public override void _PhysicsProcess(double delta)
 	{
+		MatchManager match = GetNodeOrNull<MatchManager>("../MatchManager");
+		if (match != null && !match.IsGameplayActive) { Velocity = Vector3.Zero; return; }
 		Vector3 velocity = Velocity;
 
 		if (!IsOnFloor())
@@ -227,6 +251,7 @@ public partial class Player : CharacterBody3D
 		if (Input.IsActionJustPressed("jump") && IsOnFloor() && !IsAI)
 		{
 			velocity.Y = JumpVelocity;
+			GetNodeOrNull<AudioManager>("../AudioManager")?.PlaySfx("jump");
 		}
 
 		bool kickPressed = false;
@@ -307,6 +332,20 @@ public partial class Player : CharacterBody3D
 		Velocity = velocity;
 		MoveAndSlide();
 		ClampInsideCourt();
+		float horizontalSpeed = new Vector2(Velocity.X, Velocity.Z).Length();
+		if (IsOnFloor() && horizontalSpeed > 0.8f && !IsAI)
+		{
+			_footstepTimer -= (float)delta;
+			if (_footstepTimer <= 0.0f)
+			{
+				GetNodeOrNull<AudioManager>("../AudioManager")?.PlaySfx("step");
+				_footstepTimer = horizontalSpeed > JogSpeed + 0.5f ? 0.25f : 0.42f;
+			}
+		}
+		else
+		{
+			_footstepTimer = 0.0f;
+		}
 
 		if (GlobalPosition.Y < RespawnBelow)
 		{
@@ -376,6 +415,7 @@ public partial class Player : CharacterBody3D
 
 			if (passPressed && TryPass())
 			{
+				GetNodeOrNull<AudioManager>("../AudioManager")?.PlaySfx("pass");
 				_kickCooldown = KickGrabCooldown;
 				_canVolley = false;
 				_charging = false;
@@ -383,6 +423,7 @@ public partial class Player : CharacterBody3D
 			}
 			else if (bouncePressed)
 			{
+				GetNodeOrNull<AudioManager>("../AudioManager")?.PlaySfx("bounce");
 				Vector3 pop = FacingDirection * BounceForwardSpeed + Vector3.Up * BounceUpSpeed;
 				_ball.Release(pop);
 				_kickCooldown = BounceGrabCooldown;
@@ -454,7 +495,7 @@ public partial class Player : CharacterBody3D
 		}
 
 		// Cabeceo: balón suelto a altura de cabeza, presionar K.
-		if (kickPressed && _kickCooldown <= 0.0f && _ball != null)
+		if (kickPressed && _kickCooldown <= 0.0f && _ball != null && !_ball.IsRestartProtectedFrom(this))
 		{
 			Vector3 toBallH = _ball.GlobalPosition - GlobalPosition;
 			float ballY = _ball.GlobalPosition.Y;
@@ -485,11 +526,12 @@ public partial class Player : CharacterBody3D
 			}
 		}
 
-		TrySteal();
+		if (!_ball.IsRestartProtectedFrom(this))
+			TrySteal();
 
 		Vector3 grabToBall = _ball.GlobalPosition - GlobalPosition;
 		grabToBall.Y = 0;
-		if (_kickCooldown <= 0 && _ballControlLockout <= 0.0f && grabToBall.Length() < GrabRadius && _ball.GlobalPosition.Y < GrabMaxHeight)
+		if (!_ball.IsRestartProtectedFrom(this) && _kickCooldown <= 0 && _ballControlLockout <= 0.0f && grabToBall.Length() < GrabRadius && _ball.GlobalPosition.Y < GrabMaxHeight)
 		{
 			_ball.RecordTouchPlayer(this);
 			_ball.Grab(this);
@@ -795,6 +837,8 @@ public partial class Player : CharacterBody3D
 
 	private void TrySteal()
 	{
+		if (_ball.IsRestartProtectedFrom(this))
+			return;
 		if (_ballControlLockout > 0.0f || _ball.Carrier == this)
 			return;
 		if (IsAI && (_stealCooldown > 0.0f || _ball.Carrier == null))
@@ -1080,6 +1124,7 @@ public partial class Player : CharacterBody3D
 
 	private void FireKickWithSpeed(float speed, Vector3 dir, float angleDeg)
 	{
+		GetNodeOrNull<AudioManager>("../AudioManager")?.PlaySfx("kick");
 		float angle = Mathf.DegToRad(angleDeg);
 		float cosA = Mathf.Cos(angle);
 		_ball.Release(new Vector3(dir.X * speed * cosA, speed * Mathf.Sin(angle), dir.Z * speed * cosA));
@@ -1121,7 +1166,8 @@ public partial class Player : CharacterBody3D
 	// norte. Estas referencias son fijas durante todo el partido.
 	private Vector3 AttackingHoop()
 	{
-		return TeamId == 0 ? HoopPosition : SecondHoopPosition;
+		MatchManager match = GetNodeOrNull<MatchManager>("../MatchManager");
+		return match != null ? match.GetAttackingHoop(TeamId, HoopPosition, SecondHoopPosition) : (TeamId == 0 ? HoopPosition : SecondHoopPosition);
 	}
 
 	private Vector3 DefendingHoop()

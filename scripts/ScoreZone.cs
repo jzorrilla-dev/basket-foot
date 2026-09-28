@@ -10,6 +10,7 @@ public partial class ScoreZone : Area3D
 	[Export(PropertyHint.Range, "-1,1,1")] public int ScoringTeamId = -1;
 
 	private Ball _ball;
+	private MatchManager _match;
 	private float _prevBallY = float.NaN;
 
 	public override void _Ready()
@@ -18,11 +19,12 @@ public partial class ScoreZone : Area3D
 		{
 			_ball = GetNode<Ball>(BallPath);
 		}
+		_match = GetNodeOrNull<MatchManager>("../../MatchManager");
 	}
 
 	public override void _PhysicsProcess(double delta)
 	{
-		if (_ball == null)
+		if (_ball == null || (_match != null && !_match.AcceptScoring))
 		{
 			return;
 		}
@@ -40,9 +42,11 @@ public partial class ScoreZone : Area3D
 			{
 				Vector2 contact = new(_ball.LastContactPosition.X, _ball.LastContactPosition.Z);
 				int points = contact.DistanceTo(hoop) > ThreePointRadius ? 3 : 2;
-				int scorerTeamId = ResolveScoringTeamId();
+				int scorerTeamId = _match != null ? _match.AttackingTeamForHoop(GlobalPosition.Z) : ResolveScoringTeamId();
 
 				_ball.MarkScored();
+				_match?.AddScore(points, scorerTeamId);
+				GetNodeOrNull<AudioManager>("../../AudioManager")?.PlaySfx("score");
 				EmitSignal(SignalName.ShotScored, points, scorerTeamId);
 				GD.Print($"Canasta! +{points} puntos ({Player.TeamName(scorerTeamId)})");
 			}

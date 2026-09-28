@@ -14,6 +14,7 @@ public partial class BoundaryDetector : Node3D
 	[Export] public float RestartInset = 0.8f;
 	[Export] public float ThrowInForwardDistance = 5.0f;
 	[Export] public float ThrowInInfieldDistance = 6.0f;
+	[Export] public float RestartDelay = 2.0f;
 
 	public enum BoundarySide { LateralLeft, LateralRight, GoalLineSouth, GoalLineNorth }
 
@@ -25,6 +26,7 @@ public partial class BoundaryDetector : Node3D
 	private int _pendingRestartTeamId;
 	private bool _pendingCorner;
 	private float _cooldownTimer;
+	private float _restartDelayTimer;
 
 	public override void _Ready()
 	{
@@ -48,8 +50,23 @@ public partial class BoundaryDetector : Node3D
 
 		if (_restartPending)
 		{
-			_restartPending = false;
-			ExecuteRestart();
+			_restartDelayTimer -= (float)delta;
+			if (_restartDelayTimer <= 0.0f)
+			{
+				_restartPending = false;
+				ExecuteRestart();
+			}
+			return;
+		}
+
+		// Las Areas de límite siguen siendo útiles como respaldo, pero la salida
+		// se determina por el perímetro horizontal. Así también funciona si el
+		// balón cruza la línea por encima del aro o a cualquier otra altura.
+		if (_ball != null && !_ball.IsCarried && !_ball.IsFrozenForRestart && _cooldownTimer <= 0.0f)
+		{
+			BoundarySide? side = DetectPerimeterExit(_ball.GlobalPosition);
+			if (side.HasValue)
+				OnBoundaryEntered(_ball, side.Value);
 		}
 	}
 
@@ -61,6 +78,8 @@ public partial class BoundaryDetector : Node3D
 		_restartPending = true;
 		_pendingSide = side;
 		_pendingExitPosition = _ball.GlobalPosition;
+		_restartDelayTimer = RestartDelay;
+		_ball.BeginBoundaryRestartPending();
 
 		Vector3 restartPosition = RestartPositionForSide(side, _pendingExitPosition);
 		_pendingRestartTeamId = DetermineRestartTeam(side);
@@ -68,9 +87,22 @@ public partial class BoundaryDetector : Node3D
 		_restartPlayer = DetermineRestartPlayer(restartPosition, _pendingRestartTeamId);
 	}
 
+	private BoundarySide? DetectPerimeterExit(Vector3 position)
+	{
+		if (position.X <= -CourtHalfWidth)
+			return BoundarySide.LateralLeft;
+		if (position.X >= CourtHalfWidth)
+			return BoundarySide.LateralRight;
+		if (position.Z <= -CourtHalfLength)
+			return BoundarySide.GoalLineSouth;
+		if (position.Z >= CourtHalfLength)
+			return BoundarySide.GoalLineNorth;
+		return null;
+	}
+
 	private void ExecuteRestart()
 	{
-		if (_ball.IsFrozenForRestart || _ball.IsCarried)
+		if (_ball.IsCarried)
 			return;
 
 		_cooldownTimer = RestartCooldown;
@@ -100,7 +132,8 @@ public partial class BoundaryDetector : Node3D
 			return OpposingTeam(LastTouchTeamId());
 		}
 
-		int defendingTeamId = side == BoundarySide.GoalLineSouth ? 0 : 1;
+		// Azul ataca el sur y defiende el norte; Rojo ataca el norte y defiende el sur.
+		int defendingTeamId = side == BoundarySide.GoalLineSouth ? 1 : 0;
 		// Si el defensor desvió el balón fuera durante un ataque rival, es córner
 		// para el atacante. Si el atacante fue el último, es saque de arco.
 		return OpposingTeam(LastTouchTeamId(defendingTeamId));
@@ -111,7 +144,7 @@ public partial class BoundaryDetector : Node3D
 		if (side == BoundarySide.LateralLeft || side == BoundarySide.LateralRight)
 			return false;
 
-		int defendingTeamId = side == BoundarySide.GoalLineSouth ? 0 : 1;
+		int defendingTeamId = side == BoundarySide.GoalLineSouth ? 1 : 0;
 		return LastTouchTeamId(defendingTeamId) == defendingTeamId;
 	}
 
