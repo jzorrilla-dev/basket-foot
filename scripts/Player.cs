@@ -54,17 +54,18 @@ public partial class Player : CharacterBody3D
 	[Export] public float AIPostAvoidDuration = 0.5f;
 	[Export] public float CourtHalfWidth = 10.0f;
 	[Export] public float CourtHalfLength = 20.0f;
-	[Export] public float StealRadius = 2.2f;
-	[Export] public float StealForwardReach = 1.0f;
+	// Robo a distancia de pie: el balón debe estar prácticamente al alcance del jugador.
+	[Export] public float StealRadius = 0.3f;
+	[Export] public float StealForwardReach = 0.2f;
 	[Export] public float StealCooldown = 0.7f;
 	[Export] public float LostBallStealLockout = 1.1f;
 	[Export] public float AIBallControlLockout = 3.0f;
-	[Export] public float AIStealRadius = 1.25f;
-	[Export] public float AIStealForwardReach = 0.65f;
+	[Export] public float AIStealRadius = 0.3f;
+	[Export] public float AIStealForwardReach = 0.2f;
 	[Export] public float AIStealWindup = 0.28f;
 	[Export] public float StealDuration = 0.32f;
-	[Export] public float SlideStealRadius = 3.6f;
-	[Export] public float SlideStealForwardReach = 2.2f;
+	[Export] public float SlideStealRadius = 0.6f;
+	[Export] public float SlideStealForwardReach = 0.45f;
 	[Export] public float SlideStealDuration = 0.55f;
 	[Export] public float SlideStealSpeed = 8.5f;
 	[Export] public float CourtClampMargin = 0.35f;
@@ -816,23 +817,8 @@ public partial class Player : CharacterBody3D
 		_stealCooldown = _slidingSteal ? StealCooldown + 0.35f : StealCooldown;
 		_slideDirection = moveDirection.LengthSquared() > 0.001f ? moveDirection.Normalized() : FacingDirection;
 
-		// El humano tiene prioridad al iniciar un robo: evita que la IA recupere
-		// la pelota en el mismo instante y permite comprobar el robo sin disputa.
-		if (_ball.Carrier is Player aiCarrier && aiCarrier.IsAI)
-		{
-			Vector3 toCarrier = aiCarrier.GlobalPosition - GlobalPosition;
-			toCarrier.Y = 0.0f;
-			float challengeRadius = _slidingSteal ? SlideStealRadius : StealRadius;
-			if (toCarrier.Length() <= challengeRadius)
-			{
-				aiCarrier.DisableBallControl();
-				_ball.RecordContact(GlobalPosition);
-				_ball.RecordTouchPlayer(this);
-				_ball.Grab(this);
-				_stealTimer = 0.0f;
-				_slidingSteal = false;
-			}
-		}
+		// Iniciar el robo solo abre la ventana de contacto. La recuperación efectiva
+		// se valida en TrySteal(), junto al balón y durante la animación.
 	}
 
 	private void TrySteal()
